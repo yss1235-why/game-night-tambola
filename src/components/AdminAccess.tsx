@@ -30,83 +30,81 @@ const AdminAccess = () => {
   };
 
   const handleHostLogin = () => {
-    // For now, direct navigation without authentication
-    // In a real app, you'd implement proper authentication here
     navigate('/host');
   };
 
   const handleAdminLogin = () => {
-    // For now, direct navigation without authentication
-    // In a real app, you'd implement proper authentication here
     navigate('/admin');
   };
 
   return (
-    <Card className="p-6 max-w-md mx-auto">
-      <h2 className="text-2xl font-bold mb-4 text-center">Staff Access</h2>
-      
-      {!showHostLogin && !showAdminLogin && (
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="access-code">Enter Access Code</Label>
-            <Input
-              id="access-code"
-              type="password"
-              value={accessCode}
-              onChange={(e) => setAccessCode(e.target.value)}
-              placeholder="Access code"
-              className="mt-1"
-            />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center p-4">
+      <Card className="p-6 max-w-md mx-auto bg-white/90 backdrop-blur-sm shadow-lg border-gray-200">
+        <h2 className="text-2xl font-bold mb-4 text-center text-gray-800">Staff Access</h2>
+        
+        {!showHostLogin && !showAdminLogin && (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="access-code" className="text-gray-700">Enter Access Code</Label>
+              <Input
+                id="access-code"
+                type="password"
+                value={accessCode}
+                onChange={(e) => setAccessCode(e.target.value)}
+                placeholder="Access code"
+                className="mt-1 border-gray-300 focus:border-blue-500"
+              />
+            </div>
+            
+            {error && (
+              <p className="text-red-600 text-sm">{error}</p>
+            )}
+            
+            <Button onClick={handleAccessCode} className="w-full bg-slate-600 hover:bg-slate-700">
+              Verify Access
+            </Button>
           </div>
-          
-          {error && (
-            <p className="text-red-500 text-sm">{error}</p>
-          )}
-          
-          <Button onClick={handleAccessCode} className="w-full">
-            Verify Access
-          </Button>
-        </div>
-      )}
+        )}
 
-      {showHostLogin && (
-        <div className="space-y-4">
-          <p className="text-green-600 text-center">Host access verified</p>
-          <Button onClick={handleHostLogin} className="w-full bg-blue-600 hover:bg-blue-700">
-            Enter Host Dashboard
-          </Button>
-          <Button 
-            onClick={() => {
-              setShowHostLogin(false);
-              setAccessCode('');
-            }} 
-            variant="outline" 
-            className="w-full"
-          >
-            Back
-          </Button>
-        </div>
-      )}
+        {showHostLogin && (
+          <div className="space-y-4">
+            <p className="text-green-600 text-center font-medium">Host access verified</p>
+            <Button onClick={handleHostLogin} className="w-full bg-blue-600 hover:bg-blue-700">
+              Enter Host Dashboard
+            </Button>
+            <Button 
+              onClick={() => {
+                setShowHostLogin(false);
+                setAccessCode('');
+              }} 
+              variant="outline" 
+              className="w-full border-gray-300 hover:bg-gray-50"
+            >
+              Back
+            </Button>
+          </div>
+        )}
 
-      {showAdminLogin && (
-        <div className="space-y-4">
-          <p className="text-green-600 text-center">Admin access verified</p>
-          <Button onClick={handleAdminLogin} className="w-full bg-purple-600 hover:bg-purple-700">
-            Enter Admin Panel
-          </Button>
-          <Button 
-            onClick={() => {
-              setShowAdminLogin(false);
-              setAccessCode('');
-            }} 
-            variant="outline" 
-            className="w-full"
-          >
-            Back
-          </Button>
-        </div>
-      )}
-    </Card>
+        {showAdminLogin && (
+          <div className="space-y-4">
+            <p className="text-green-600 text-center font-medium">Admin access verified</p>
+            <Button onClick={handleAdminLogin} className="w-full bg-purple-600 hover:bg-purple-700">
+              Enter Admin Panel
+            </Button>
+            <Button 
+              onClick={() => {
+                setShowAdminLogin(false);
+                setAccessCode('');
+              }} 
+              variant="outline" 
+              className="w-full border-gray-300 hover:bg-gray-50"
+            >
+              Back
+            </Button>
+          </div>
+        )}
+      </Card>
+    </div>
   );
 };
 
