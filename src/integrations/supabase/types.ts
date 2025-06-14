@@ -9,7 +9,232 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      admin_winner_settings: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: string
+          prize_type: Database["public"]["Enums"]["prize_type"]
+          ticket_number: number
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: string
+          prize_type: Database["public"]["Enums"]["prize_type"]
+          ticket_number: number
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: string
+          prize_type?: Database["public"]["Enums"]["prize_type"]
+          ticket_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_winner_settings_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bookings: {
+        Row: {
+          booked_at: string
+          game_id: string
+          id: string
+          player_name: string
+          player_phone: string | null
+          ticket_id: number
+        }
+        Insert: {
+          booked_at?: string
+          game_id: string
+          id?: string
+          player_name: string
+          player_phone?: string | null
+          ticket_id: number
+        }
+        Update: {
+          booked_at?: string
+          game_id?: string
+          id?: string
+          player_name?: string
+          player_phone?: string | null
+          ticket_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      games: {
+        Row: {
+          created_at: string
+          current_number: number | null
+          ended_at: string | null
+          host_id: string
+          id: string
+          number_calling_delay: number | null
+          numbers_called: number[] | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["game_status"] | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_number?: number | null
+          ended_at?: string | null
+          host_id: string
+          id?: string
+          number_calling_delay?: number | null
+          numbers_called?: number[] | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["game_status"] | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_number?: number | null
+          ended_at?: string | null
+          host_id?: string
+          id?: string
+          number_calling_delay?: number | null
+          numbers_called?: number[] | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["game_status"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "games_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hosts: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean | null
+          name: string
+          phone: string | null
+          subscription_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          phone?: string | null
+          subscription_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          phone?: string | null
+          subscription_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tickets: {
+        Row: {
+          created_at: string
+          id: number
+          numbers: number[]
+          row1: number[]
+          row2: number[]
+          row3: number[]
+          ticket_number: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          numbers: number[]
+          row1: number[]
+          row2: number[]
+          row3: number[]
+          ticket_number: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          numbers?: number[]
+          row1?: number[]
+          row2?: number[]
+          row3?: number[]
+          ticket_number?: number
+        }
+        Relationships: []
+      }
+      winners: {
+        Row: {
+          claimed_at: string | null
+          created_at: string
+          game_id: string
+          id: string
+          prize_type: Database["public"]["Enums"]["prize_type"]
+          ticket_id: number
+        }
+        Insert: {
+          claimed_at?: string | null
+          created_at?: string
+          game_id: string
+          id?: string
+          prize_type: Database["public"]["Enums"]["prize_type"]
+          ticket_id: number
+        }
+        Update: {
+          claimed_at?: string | null
+          created_at?: string
+          game_id?: string
+          id?: string
+          prize_type?: Database["public"]["Enums"]["prize_type"]
+          ticket_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "winners_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "winners_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +243,15 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      game_status: "waiting" | "active" | "paused" | "ended"
+      prize_type:
+        | "first_line"
+        | "second_line"
+        | "third_line"
+        | "full_house"
+        | "early_five"
+        | "corners"
+      user_role: "host" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +366,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      game_status: ["waiting", "active", "paused", "ended"],
+      prize_type: [
+        "first_line",
+        "second_line",
+        "third_line",
+        "full_house",
+        "early_five",
+        "corners",
+      ],
+      user_role: ["host", "admin"],
+    },
   },
 } as const

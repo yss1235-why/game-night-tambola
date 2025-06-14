@@ -1,0 +1,282 @@
+
+import React, { useState, useEffect } from 'react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useGameData } from '@/hooks/useGameData';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+const HostDashboard: React.FC = () => {
+  const { currentGame, bookings } = useGameData();
+  const { toast } = useToast();
+  const [numberCallingDelay, setNumberCallingDelay] = useState(5);
+  const [isNumberCalling, setIsNumberCalling] = useState(false);
+
+  useEffect(() => {
+    if (currentGame?.status === 'active' && !isNumberCalling) {
+      startNumberCalling();
+    }
+  }, [currentGame?.status]);
+
+  const createNewGame = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('games')
+        .insert([{
+          host_id: 'temp-host-id', // Will implement proper auth later
+          status: 'waiting',
+          number_calling_delay: numberCallingDelay
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "New game created successfully!"
+      });
+    } catch (error) {
+      console.error('Error creating game:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create new game",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const startGame = async () => {
+    if (!currentGame) return;
+
+    try {
+      const { error } = await supabase
+        .from('games')
+        .update({
+          status: 'active',
+          started_at: new Date().toISOString()
+        })
+        .eq('id', currentGame.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Game started!"
+      });
+    } catch (error) {
+      console.error('Error starting game:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start game",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const pauseGame = async () => {
+    if (!currentGame) return;
+
+    try {
+      const { error } = await supabase
+        .from('games')
+        .update({ status: 'paused' })
+        .eq('id', currentGame.id);
+
+      if (error) throw error;
+
+      setIsNumberCalling(false);
+      toast({
+        title: "Success",
+        description: "Game paused!"
+      });
+    } catch (error) {
+      console.error('Error pausing game:', error);
+    }
+  };
+
+  const endGame = async () => {
+    if (!currentGame) return;
+
+    try {
+      const { error } = await supabase
+        .from('games')
+        .update({
+          status: 'ended',
+          ended_at: new Date().toISOString()
+        })
+        .eq('id', currentGame.id);
+
+      if (error) throw error;
+
+      setIsNumberCalling(false);
+      toast({
+        title: "Success",
+        description: "Game ended!"
+      });
+    } catch (error) {
+      console.error('Error ending game:', error);
+    }
+  };
+
+  const startNumberCalling = () => {
+    if (!currentGame || currentGame.status !== 'active') return;
+
+    setIsNumberCalling(true);
+    
+    const callNextNumber = async () => {
+      if (!currentGame || currentGame.status !== 'active') {
+        setIsNumberCalling(false);
+        return;
+      }
+
+      const calledNumbers = currentGame.numbers_called || [];
+      const availableNumbers = Array.from({ length: 90 }, (_, i) => i + 1)
+        .filter(num => !calledNumbers.includes(num));
+
+      if (availableNumbers.length === 0) {
+        setIsNumberCalling(false);
+        return;
+      }
+
+      // Check if admin has set winners and manipulate number calling
+      const { data: adminSettings } = await supabase
+        .from('admin_winner_settings')
+        .select('*')
+        .eq('game_id', currentGame.id);
+
+      let nextNumber;
+      
+      if (adminSettings && adminSettings.length > 0) {
+        // Implement smart number calling to ensure admin-set winners win
+        // This is a simplified version - in real implementation, you'd need
+        // sophisticated logic to ensure the right ticket wins at the right time
+        const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+        nextNumber = availableNumbers[randomIndex];
+      } else {
+        // Regular random number calling
+        const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+        nextNumber = availableNumbers[randomIndex];
+      }
+
+      const newCalledNumbers = [...calledNumbers, nextNumber];
+
+      try {
+        const { error } = await supabase
+          .from('games')
+          .update({
+            current_number: nextNumber,
+            numbers_called: newCalledNumbers
+          })
+          .eq('id', currentGame.id);
+
+        if (error) throw error;
+
+        // Schedule next number
+        setTimeout(callNextNumber, (currentGame.number_calling_delay || 5) * 1000);
+      } catch (error) {
+        console.error('Error calling number:', error);
+        setIsNumberCalling(false);
+      }
+    };
+
+    callNextNumber();
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <Card className="p-6">
+          <h1 className="text-3xl font-bold mb-6">Host Dashboard</h1>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Game Controls</h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="delay">Number Calling Delay (seconds)</Label>
+                  <Input
+                    id="delay"
+                    type="number"
+                    min="2"
+                    max="10"
+                    value={numberCallingDelay}
+                    onChange={(e) => setNumberCallingDelay(Number(e.target.value))}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  {!currentGame && (
+                    <Button onClick={createNewGame} className="w-full">
+                      Create New Game
+                    </Button>
+                  )}
+                  
+                  {currentGame?.status === 'waiting' && (
+                    <Button onClick={startGame} className="w-full bg-green-600">
+                      Start Game
+                    </Button>
+                  )}
+                  
+                  {currentGame?.status === 'active' && (
+                    <>
+                      <Button onClick={pauseGame} className="w-full bg-yellow-600">
+                        Pause Game
+                      </Button>
+                      <Button onClick={endGame} className="w-full bg-red-600">
+                        End Game
+                      </Button>
+                    </>
+                  )}
+                  
+                  {currentGame?.status === 'paused' && (
+                    <Button onClick={startGame} className="w-full bg-green-600">
+                      Resume Game
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Game Status</h2>
+              {currentGame ? (
+                <div className="space-y-2">
+                  <p><strong>Status:</strong> {currentGame.status}</p>
+                  <p><strong>Current Number:</strong> {currentGame.current_number || 'None'}</p>
+                  <p><strong>Numbers Called:</strong> {currentGame.numbers_called?.length || 0}</p>
+                  <p><strong>Delay:</strong> {currentGame.number_calling_delay}s</p>
+                </div>
+              ) : (
+                <p className="text-gray-500">No active game</p>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <h2 className="text-xl font-semibold mb-4">Bookings ({bookings.length})</h2>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {bookings.length > 0 ? (
+              bookings.map(booking => (
+                <div key={booking.id} className="flex justify-between p-2 bg-gray-100 rounded">
+                  <span>Ticket #{booking.ticket_id}</span>
+                  <span>{booking.player_name}</span>
+                  <span>{booking.player_phone}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500">No bookings yet</p>
+            )}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default HostDashboard;
