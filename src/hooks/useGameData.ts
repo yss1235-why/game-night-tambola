@@ -13,7 +13,56 @@ export const useGameData = () => {
 
   useEffect(() => {
     fetchInitialData();
-    setupRealtimeSubscriptions();
+    
+    // Setup realtime subscriptions
+    const gamesChannel = supabase
+      .channel('games-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'games'
+      }, (payload) => {
+        console.log('Games change:', payload);
+        if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
+          setCurrentGame(payload.new as Game);
+        }
+      })
+      .subscribe();
+
+    const bookingsChannel = supabase
+      .channel('bookings-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'bookings'
+      }, (payload) => {
+        console.log('Bookings change:', payload);
+        if (payload.eventType === 'INSERT') {
+          setBookings(prev => [...prev, payload.new as Booking]);
+        }
+      })
+      .subscribe();
+
+    const winnersChannel = supabase
+      .channel('winners-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'winners'
+      }, (payload) => {
+        console.log('Winners change:', payload);
+        if (payload.eventType === 'INSERT') {
+          setWinners(prev => [...prev, payload.new as Winner]);
+        }
+      })
+      .subscribe();
+
+    // Cleanup function
+    return () => {
+      supabase.removeChannel(gamesChannel);
+      supabase.removeChannel(bookingsChannel);
+      supabase.removeChannel(winnersChannel);
+    };
   }, []);
 
   const fetchInitialData = async () => {
@@ -65,59 +114,6 @@ export const useGameData = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const setupRealtimeSubscriptions = () => {
-    // Subscribe to games changes
-    const gamesChannel = supabase
-      .channel('games-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'games'
-      }, (payload) => {
-        console.log('Games change:', payload);
-        if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
-          setCurrentGame(payload.new as Game);
-        }
-      })
-      .subscribe();
-
-    // Subscribe to bookings changes
-    const bookingsChannel = supabase
-      .channel('bookings-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'bookings'
-      }, (payload) => {
-        console.log('Bookings change:', payload);
-        if (payload.eventType === 'INSERT') {
-          setBookings(prev => [...prev, payload.new as Booking]);
-        }
-      })
-      .subscribe();
-
-    // Subscribe to winners changes
-    const winnersChannel = supabase
-      .channel('winners-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'winners'
-      }, (payload) => {
-        console.log('Winners change:', payload);
-        if (payload.eventType === 'INSERT') {
-          setWinners(prev => [...prev, payload.new as Winner]);
-        }
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(gamesChannel);
-      supabase.removeChannel(bookingsChannel);
-      supabase.removeChannel(winnersChannel);
-    };
   };
 
   return {
