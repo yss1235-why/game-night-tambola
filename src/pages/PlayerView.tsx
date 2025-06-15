@@ -15,6 +15,11 @@ const PlayerView: React.FC = () => {
   const [searchTicketNumber, setSearchTicketNumber] = useState('');
   const [viewedTickets, setViewedTickets] = useState<number[]>([]);
 
+  // Debug log for real-time updates
+  React.useEffect(() => {
+    console.log('PlayerView - Game updated:', currentGame?.status, currentGame?.id);
+  }, [currentGame]);
+
   const handleSearchTicket = () => {
     const ticketNumber = parseInt(searchTicketNumber);
     if (ticketNumber && !viewedTickets.includes(ticketNumber)) {

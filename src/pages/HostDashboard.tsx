@@ -18,18 +18,18 @@ import WinnersList from '@/components/WinnersList';
 const HostDashboard: React.FC = () => {
   const { currentGame, tickets, bookings, winners } = useGameData();
   const navigate = useNavigate();
-  const [numberCallingDelay, setNumberCallingDelay] = useState(5);
+  const [numberCallingDelay, setNumberCallingDelay] = useState('');
   const [hostPhone, setHostPhone] = useState('');
   const [selectedTicketSet, setSelectedTicketSet] = useState('demo-set-1');
   const [selectedPrizes, setSelectedPrizes] = useState<PrizeType[]>(['first_line', 'full_house']);
-  const [maxTickets, setMaxTickets] = useState(100);
+  const [maxTickets, setMaxTickets] = useState('');
   const [isNumberCalling, setIsNumberCalling] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editDelay, setEditDelay] = useState(5);
+  const [editDelay, setEditDelay] = useState('');
   const [editTicketSet, setEditTicketSet] = useState('demo-set-1');
   const [editPrizes, setEditPrizes] = useState<PrizeType[]>(['first_line', 'full_house']);
   const [editHostPhone, setEditHostPhone] = useState('');
-  const [editMaxTickets, setEditMaxTickets] = useState(100);
+  const [editMaxTickets, setEditMaxTickets] = useState('');
   const [currentHostData, setCurrentHostData] = useState<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
@@ -39,14 +39,21 @@ const HostDashboard: React.FC = () => {
       const savedSettings = localStorage.getItem('hostGameSettings');
       if (savedSettings) {
         const settings = JSON.parse(savedSettings);
-        setNumberCallingDelay(settings.numberCallingDelay || 5);
+        setNumberCallingDelay(settings.numberCallingDelay?.toString() || '5');
         setSelectedTicketSet(settings.selectedTicketSet || 'demo-set-1');
         setSelectedPrizes(settings.selectedPrizes || ['first_line', 'full_house']);
-        setMaxTickets(settings.maxTickets || 100);
+        setMaxTickets(settings.maxTickets?.toString() || '100');
         console.log('Loaded saved game settings:', settings);
+      } else {
+        // Set default values if no saved settings
+        setNumberCallingDelay('5');
+        setMaxTickets('100');
       }
     } catch (error) {
       console.error('Error loading saved game settings:', error);
+      // Set default values on error
+      setNumberCallingDelay('5');
+      setMaxTickets('100');
     }
   };
 
@@ -149,10 +156,12 @@ const HostDashboard: React.FC = () => {
     }, 400);
   };
 
-  // Debug effect to log game status changes
+  // Debug effect to log game status changes - with real-time updates
   useEffect(() => {
     console.log('Current game status changed:', currentGame?.status);
     console.log('Current game object:', currentGame);
+    console.log('Show game setup:', !currentGame || currentGame.status === 'ended');
+    console.log('Show ticket booking:', currentGame && currentGame.status === 'waiting');
   }, [currentGame?.status, currentGame]);
 
   useEffect(() => {
@@ -168,12 +177,12 @@ const HostDashboard: React.FC = () => {
 
   useEffect(() => {
     if (currentGame) {
-      setEditDelay(currentGame.number_calling_delay || 5);
+      setEditDelay((currentGame.number_calling_delay || 5).toString());
       setEditTicketSet(currentGame.ticket_set || 'demo-set-1');
       setEditPrizes((currentGame.selected_prizes as PrizeType[]) || ['first_line', 'full_house']);
       // Use host phone from current host data if available, otherwise use game phone
       setEditHostPhone(currentGame.host_phone || currentHostData?.phone || '');
-      setEditMaxTickets(currentGame.max_tickets || 100);
+      setEditMaxTickets((currentGame.max_tickets || 100).toString());
     }
   }, [currentGame, currentHostData]);
 
@@ -207,10 +216,10 @@ const HostDashboard: React.FC = () => {
     
     // Save settings when prizes change
     saveGameSettings({
-      numberCallingDelay,
+      numberCallingDelay: parseInt(numberCallingDelay) || 5,
       selectedTicketSet,
       selectedPrizes: newPrizes,
-      maxTickets
+      maxTickets: parseInt(maxTickets) || 100
     });
   };
 
@@ -249,8 +258,7 @@ const HostDashboard: React.FC = () => {
       return;
     }
 
-    // Allow editMaxTickets to be 0 or validate it's a positive number
-    const validEditMaxTickets = editMaxTickets || 100;
+    const validEditMaxTickets = parseInt(editMaxTickets) || 100;
     if (validEditMaxTickets < 1 || validEditMaxTickets > 1000) {
       toast({
         title: "Error",
@@ -264,7 +272,7 @@ const HostDashboard: React.FC = () => {
       const { error } = await supabase
         .from('games')
         .update({
-          number_calling_delay: editDelay || 5,
+          number_calling_delay: parseInt(editDelay) || 5,
           ticket_set: editTicketSet,
           selected_prizes: editPrizes as string[],
           host_phone: editHostPhone,
@@ -312,8 +320,7 @@ const HostDashboard: React.FC = () => {
       return;
     }
 
-    // Allow maxTickets to be 0 or validate it's a positive number
-    const validMaxTickets = maxTickets || 100;
+    const validMaxTickets = parseInt(maxTickets) || 100;
     if (validMaxTickets < 1 || validMaxTickets > 1000) {
       toast({
         title: "Error",
@@ -331,7 +338,7 @@ const HostDashboard: React.FC = () => {
 
       // Save current settings before creating the game
       saveGameSettings({
-        numberCallingDelay: numberCallingDelay || 5,
+        numberCallingDelay: parseInt(numberCallingDelay) || 5,
         selectedTicketSet,
         selectedPrizes,
         maxTickets: validMaxTickets
@@ -343,7 +350,7 @@ const HostDashboard: React.FC = () => {
         .insert([{
           host_id: user.id,
           status: 'waiting',
-          number_calling_delay: numberCallingDelay || 5,
+          number_calling_delay: parseInt(numberCallingDelay) || 5,
           host_phone: phoneToUse,
           ticket_set: selectedTicketSet,
           selected_prizes: selectedPrizes as string[],
@@ -353,6 +360,8 @@ const HostDashboard: React.FC = () => {
         .single();
 
       if (error) throw error;
+
+      console.log('New game created, real-time should update UI:', data);
 
       toast({
         title: "Success",
@@ -549,6 +558,7 @@ const HostDashboard: React.FC = () => {
 
   const handleBookingComplete = () => {
     // The useGameData hook will automatically update via real-time subscriptions
+    console.log('Booking completed, real-time should handle updates');
   };
 
   const prizeOptions: { value: PrizeType; label: string }[] = [
@@ -560,8 +570,16 @@ const HostDashboard: React.FC = () => {
     { value: 'corners', label: 'Corners' }
   ];
 
+  // Reactive computed values based on current game state
   const showGameSetup = !currentGame || currentGame.status === 'ended';
   const showTicketBooking = currentGame && currentGame.status === 'waiting';
+
+  console.log('Rendering HostDashboard with:', {
+    currentGameStatus: currentGame?.status,
+    showGameSetup,
+    showTicketBooking,
+    gameId: currentGame?.id
+  });
 
   // Helper function to get button text and action based on current status
   const getGameControlButton = () => {
@@ -600,32 +618,32 @@ const HostDashboard: React.FC = () => {
   const handleTicketSetChange = (value: string) => {
     setSelectedTicketSet(value);
     saveGameSettings({
-      numberCallingDelay,
+      numberCallingDelay: parseInt(numberCallingDelay) || 5,
       selectedTicketSet: value,
       selectedPrizes,
-      maxTickets
+      maxTickets: parseInt(maxTickets) || 100
     });
   };
 
   const handleMaxTicketsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value === '' ? 0 : Number(e.target.value);
+    const value = e.target.value;
     setMaxTickets(value);
     saveGameSettings({
-      numberCallingDelay,
+      numberCallingDelay: parseInt(numberCallingDelay) || 5,
       selectedTicketSet,
       selectedPrizes,
-      maxTickets: value
+      maxTickets: parseInt(value) || 100
     });
   };
 
   const handleDelayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value === '' ? 0 : Number(e.target.value);
+    const value = e.target.value;
     setNumberCallingDelay(value);
     saveGameSettings({
-      numberCallingDelay: value,
+      numberCallingDelay: parseInt(value) || 5,
       selectedTicketSet,
       selectedPrizes,
-      maxTickets
+      maxTickets: parseInt(maxTickets) || 100
     });
   };
 
@@ -689,7 +707,7 @@ const HostDashboard: React.FC = () => {
                       type="number"
                       min="0"
                       max="1000"
-                      value={maxTickets || ''}
+                      value={maxTickets}
                       onChange={handleMaxTicketsChange}
                       className="mt-1"
                       placeholder="Enter number of tickets"
@@ -721,7 +739,7 @@ const HostDashboard: React.FC = () => {
                       type="number"
                       min="0"
                       max="10"
-                      value={numberCallingDelay || ''}
+                      value={numberCallingDelay}
                       onChange={handleDelayChange}
                       className="mt-1"
                       placeholder="Enter delay in seconds"
@@ -854,8 +872,8 @@ const HostDashboard: React.FC = () => {
                   type="number"
                   min="0"
                   max="1000"
-                  value={editMaxTickets || ''}
-                  onChange={(e) => setEditMaxTickets(e.target.value === '' ? 0 : Number(e.target.value))}
+                  value={editMaxTickets}
+                  onChange={(e) => setEditMaxTickets(e.target.value)}
                   className="mt-1"
                   placeholder="Enter number of tickets"
                 />
@@ -886,8 +904,8 @@ const HostDashboard: React.FC = () => {
                   type="number"
                   min="0"
                   max="10"
-                  value={editDelay || ''}
-                  onChange={(e) => setEditDelay(e.target.value === '' ? 0 : Number(e.target.value))}
+                  value={editDelay}
+                  onChange={(e) => setEditDelay(e.target.value)}
                   className="mt-1"
                   placeholder="Enter delay in seconds"
                 />

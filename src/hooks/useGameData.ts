@@ -26,6 +26,7 @@ export const useGameData = () => {
         console.log('Games change:', payload);
         if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
           const updatedGame = payload.new as Game;
+          console.log('Updating current game in real-time:', updatedGame);
           setCurrentGame(updatedGame);
           
           // When max_tickets changes, we need to refresh bookings to ensure UI consistency
@@ -33,6 +34,24 @@ export const useGameData = () => {
               (payload.old as Game).max_tickets !== updatedGame.max_tickets) {
             fetchBookingsForGame(updatedGame.id);
           }
+        }
+      })
+      .subscribe();
+
+    const ticketsChannel = supabase
+      .channel('tickets-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'tickets'
+      }, (payload) => {
+        console.log('Tickets change:', payload);
+        if (payload.eventType === 'INSERT') {
+          setTickets(prev => [...prev, payload.new as Ticket]);
+        } else if (payload.eventType === 'UPDATE') {
+          setTickets(prev => prev.map(ticket => 
+            ticket.id === payload.new.id ? payload.new as Ticket : ticket
+          ));
         }
       })
       .subscribe();
@@ -51,6 +70,8 @@ export const useGameData = () => {
           setBookings(prev => prev.map(booking => 
             booking.id === payload.new.id ? payload.new as Booking : booking
           ));
+        } else if (payload.eventType === 'DELETE') {
+          setBookings(prev => prev.filter(booking => booking.id !== payload.old.id));
         }
       })
       .subscribe();
@@ -65,6 +86,12 @@ export const useGameData = () => {
         console.log('Winners change:', payload);
         if (payload.eventType === 'INSERT') {
           setWinners(prev => [...prev, payload.new as Winner]);
+        } else if (payload.eventType === 'UPDATE') {
+          setWinners(prev => prev.map(winner => 
+            winner.id === payload.new.id ? payload.new as Winner : winner
+          ));
+        } else if (payload.eventType === 'DELETE') {
+          setWinners(prev => prev.filter(winner => winner.id !== payload.old.id));
         }
       })
       .subscribe();
@@ -72,6 +99,7 @@ export const useGameData = () => {
     // Cleanup function
     return () => {
       supabase.removeChannel(gamesChannel);
+      supabase.removeChannel(ticketsChannel);
       supabase.removeChannel(bookingsChannel);
       supabase.removeChannel(winnersChannel);
     };
@@ -108,6 +136,7 @@ export const useGameData = () => {
 
       if (games && games.length > 0) {
         const game = games[0];
+        console.log('Setting initial current game:', game);
         setCurrentGame(game);
 
         if (game.status === 'ended') {
