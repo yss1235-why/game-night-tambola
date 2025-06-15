@@ -89,11 +89,14 @@ export type Database = {
           current_number: number | null
           ended_at: string | null
           host_id: string
+          host_phone: string | null
           id: string
           number_calling_delay: number | null
           numbers_called: number[] | null
+          selected_prizes: string[] | null
           started_at: string | null
           status: Database["public"]["Enums"]["game_status"] | null
+          ticket_set: string | null
           updated_at: string
         }
         Insert: {
@@ -101,11 +104,14 @@ export type Database = {
           current_number?: number | null
           ended_at?: string | null
           host_id: string
+          host_phone?: string | null
           id?: string
           number_calling_delay?: number | null
           numbers_called?: number[] | null
+          selected_prizes?: string[] | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["game_status"] | null
+          ticket_set?: string | null
           updated_at?: string
         }
         Update: {
@@ -113,11 +119,14 @@ export type Database = {
           current_number?: number | null
           ended_at?: string | null
           host_id?: string
+          host_phone?: string | null
           id?: string
           number_calling_delay?: number | null
           numbers_called?: number[] | null
+          selected_prizes?: string[] | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["game_status"] | null
+          ticket_set?: string | null
           updated_at?: string
         }
         Relationships: [

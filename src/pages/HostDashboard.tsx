@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useGameData } from '@/hooks/useGameData';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { PrizeType } from '@/types/game';
 
 const HostDashboard: React.FC = () => {
   const { currentGame, bookings } = useGameData();
@@ -14,7 +15,7 @@ const HostDashboard: React.FC = () => {
   const [numberCallingDelay, setNumberCallingDelay] = useState(5);
   const [hostPhone, setHostPhone] = useState('');
   const [selectedTicketSet, setSelectedTicketSet] = useState('demo-set-1');
-  const [selectedPrizes, setSelectedPrizes] = useState<string[]>(['first_line', 'full_house']);
+  const [selectedPrizes, setSelectedPrizes] = useState<PrizeType[]>(['first_line', 'full_house']);
   const [isNumberCalling, setIsNumberCalling] = useState(false);
 
   useEffect(() => {
@@ -23,7 +24,7 @@ const HostDashboard: React.FC = () => {
     }
   }, [currentGame?.status]);
 
-  const handlePrizeToggle = (prize: string) => {
+  const handlePrizeToggle = (prize: PrizeType) => {
     setSelectedPrizes(prev => 
       prev.includes(prize) 
         ? prev.filter(p => p !== prize)
@@ -51,10 +52,13 @@ const HostDashboard: React.FC = () => {
     }
 
     try {
+      // Create a temporary UUID for host_id until proper authentication is implemented
+      const tempHostId = crypto.randomUUID();
+      
       const { data, error } = await supabase
         .from('games')
         .insert([{
-          host_id: 'temp-host-id', // Will implement proper auth later
+          host_id: tempHostId,
           status: 'waiting',
           number_calling_delay: numberCallingDelay,
           host_phone: hostPhone,
@@ -70,6 +74,12 @@ const HostDashboard: React.FC = () => {
         title: "Success",
         description: "New game created successfully!"
       });
+
+      // Reset form
+      setHostPhone('');
+      setSelectedPrizes(['first_line', 'full_house']);
+      setSelectedTicketSet('demo-set-1');
+      setNumberCallingDelay(5);
     } catch (error) {
       console.error('Error creating game:', error);
       toast({
@@ -217,7 +227,7 @@ const HostDashboard: React.FC = () => {
     callNextNumber();
   };
 
-  const prizeOptions = [
+  const prizeOptions: { value: PrizeType; label: string }[] = [
     { value: 'first_line', label: 'First Line' },
     { value: 'second_line', label: 'Second Line' },
     { value: 'third_line', label: 'Third Line' },
@@ -335,6 +345,9 @@ const HostDashboard: React.FC = () => {
                   <p><strong>Current Number:</strong> {currentGame.current_number || 'None'}</p>
                   <p><strong>Numbers Called:</strong> {currentGame.numbers_called?.length || 0}</p>
                   <p><strong>Delay:</strong> {currentGame.number_calling_delay}s</p>
+                  <p><strong>Host Phone:</strong> {currentGame.host_phone || 'Not set'}</p>
+                  <p><strong>Ticket Set:</strong> {currentGame.ticket_set || 'Not set'}</p>
+                  <p><strong>Selected Prizes:</strong> {currentGame.selected_prizes?.join(', ') || 'None'}</p>
                 </div>
               ) : (
                 <p className="text-gray-500">No active game</p>
