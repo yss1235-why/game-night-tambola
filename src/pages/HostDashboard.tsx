@@ -10,9 +10,10 @@ import { useToast } from '@/hooks/use-toast';
 import { PrizeType } from '@/types/game';
 import { LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import TicketBookingGrid from '@/components/TicketBookingGrid';
 
 const HostDashboard: React.FC = () => {
-  const { currentGame, bookings } = useGameData();
+  const { currentGame, tickets, bookings } = useGameData();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [numberCallingDelay, setNumberCallingDelay] = useState(5);
@@ -37,7 +38,6 @@ const HostDashboard: React.FC = () => {
         description: "Logged out successfully!"
       });
       
-      // Redirect to landing page
       navigate('/');
     } catch (error) {
       console.error('Error logging out:', error);
@@ -266,6 +266,11 @@ const HostDashboard: React.FC = () => {
     callNextNumber();
   };
 
+  const handleBookingComplete = () => {
+    // Trigger refresh of game data
+    window.location.reload();
+  };
+
   const prizeOptions: { value: PrizeType; label: string }[] = [
     { value: 'first_line', label: 'First Line' },
     { value: 'second_line', label: 'Second Line' },
@@ -277,7 +282,7 @@ const HostDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         <Card className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold">Host Dashboard</h1>
@@ -404,6 +409,16 @@ const HostDashboard: React.FC = () => {
             </div>
           </div>
         </Card>
+
+        {/* Ticket Booking Section */}
+        {currentGame && (
+          <TicketBookingGrid
+            tickets={tickets}
+            bookings={bookings}
+            currentGame={currentGame}
+            onBookingComplete={handleBookingComplete}
+          />
+        )}
 
         <Card className="p-6">
           <h2 className="text-xl font-semibold mb-4">Bookings ({bookings.length})</h2>
