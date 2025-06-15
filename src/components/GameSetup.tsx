@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,12 +22,12 @@ const GameSetup: React.FC<GameSetupProps> = ({ onGameCreated }) => {
   const availablePrizes: { value: PrizeType; label: string; description: string }[] = [
     { value: 'early_five', label: 'Early Five', description: 'First 5 numbers marked' },
     { value: 'corners', label: 'Four Corners', description: 'All 4 corner numbers marked' },
-    { value: 'first_line', label: 'First Line', description: 'Complete first row' },
-    { value: 'second_line', label: 'Second Line', description: 'Complete second row' },
-    { value: 'third_line', label: 'Third Line', description: 'Complete third row' },
+    { value: 'top_line', label: 'Top Line', description: 'Complete top row' },
+    { value: 'middle_line', label: 'Middle Line', description: 'Complete middle row' },
+    { value: 'bottom_line', label: 'Bottom Line', description: 'Complete bottom row' },
     { value: 'half_sheet', label: 'Half Sheet', description: 'Any two complete rows' },
-    { value: 'full_house', label: 'Full House', description: 'Complete ticket' },
-    { value: 'full_sheet', label: 'Full Sheet', description: 'All numbers on ticket' }
+    { value: 'full_house', label: 'Full House', description: 'All 15 numbers on ticket' },
+    { value: 'full_sheet', label: 'Full Sheet', description: 'Complete ticket with all rows' }
   ];
 
   const handlePrizeToggle = (prize: PrizeType) => {

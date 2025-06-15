@@ -602,9 +602,9 @@ const HostDashboard: React.FC = () => {
   const prizeOptions: { value: PrizeType; label: string }[] = [
     { value: 'early_five', label: 'Early Five' },
     { value: 'corners', label: 'Four Corners' },
-    { value: 'first_line', label: 'First Line' },
-    { value: 'second_line', label: 'Second Line' },
-    { value: 'third_line', label: 'Third Line' },
+    { value: 'top_line', label: 'Top Line' },
+    { value: 'middle_line', label: 'Middle Line' },
+    { value: 'bottom_line', label: 'Bottom Line' },
     { value: 'half_sheet', label: 'Half Sheet' },
     { value: 'full_house', label: 'Full House' },
     { value: 'full_sheet', label: 'Full Sheet' }
