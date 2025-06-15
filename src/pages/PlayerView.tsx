@@ -27,12 +27,6 @@ const PlayerView: React.FC = () => {
     setViewedTickets(prev => prev.filter(num => num !== ticketNumber));
   };
 
-  const getBookingsForTicketNumber = (ticketNumber: number) => {
-    const ticket = tickets.find(t => t.ticket_number === ticketNumber);
-    if (!ticket) return [];
-    return bookings.filter(b => b.ticket_id === ticket.id);
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -77,11 +71,13 @@ const PlayerView: React.FC = () => {
           <GameStatus game={currentGame} winners={winners} />
         </div>
 
-        {/* Number Grid */}
-        <NumberGrid 
-          calledNumbers={currentGame?.numbers_called || []}
-          currentNumber={currentGame?.current_number}
-        />
+        {/* Single Number Grid - only show during active or paused game */}
+        {(currentGame.status === 'active' || currentGame.status === 'paused') && (
+          <NumberGrid 
+            calledNumbers={currentGame?.numbers_called || []}
+            currentNumber={currentGame?.current_number}
+          />
+        )}
 
         {/* Ticket Search */}
         <Card className="p-6">
