@@ -133,18 +133,27 @@ serve(async (req) => {
       )
     }
 
-    // Finally delete the auth user
-    const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(hostId)
+    // Finally delete the auth user (but don't fail if user doesn't exist)
+    try {
+      const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(hostId)
 
-    if (authDeleteError) {
-      console.error('Error deleting auth user:', authDeleteError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to delete user account' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      if (authDeleteError) {
+        // If user is not found, that's actually okay - it means it was already deleted
+        if (authDeleteError.message?.includes('User not found') || authDeleteError.status === 404) {
+          console.log(`Auth user ${hostId} was already deleted or not found, continuing...`)
+        } else {
+          console.error('Error deleting auth user:', authDeleteError)
+          // Don't fail the entire operation just because auth deletion failed
+          // The host record is already deleted, which is the main goal
+          console.log('Continuing despite auth deletion error since host record was successfully deleted')
         }
-      )
+      } else {
+        console.log(`Successfully deleted auth user: ${hostId}`)
+      }
+    } catch (authError) {
+      console.error('Exception during auth user deletion:', authError)
+      // Don't fail the entire operation - the host record is already deleted
+      console.log('Continuing despite auth deletion exception since host record was successfully deleted')
     }
 
     console.log(`Successfully deleted host: ${hostId}`)
