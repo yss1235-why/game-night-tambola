@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -207,118 +206,153 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
   };
 
   return (
-    <Card className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Ticket Booking</h2>
-        {selectedTickets.length > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">
-              {selectedTickets.length} ticket(s) selected
-            </span>
-            <Button variant="outline" size="sm" onClick={clearSelection}>
-              <X size={16} />
-              Clear
-            </Button>
-            <Dialog open={isBookingDialogOpen} onOpenChange={setIsBookingDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>Book Selected Tickets</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Book {selectedTickets.length} Ticket(s)</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="playerName">Player Name *</Label>
-                    <Input
-                      id="playerName"
-                      value={playerName}
-                      onChange={(e) => setPlayerName(e.target.value)}
-                      placeholder="Enter player name"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="playerPhone">Player Phone (Optional)</Label>
-                    <Input
-                      id="playerPhone"
-                      type="tel"
-                      value={playerPhone}
-                      onChange={(e) => setPlayerPhone(e.target.value)}
-                      placeholder="+1234567890"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    Selected tickets: {selectedTickets.join(', ')}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={handleBookTickets}
-                      disabled={isSubmitting}
-                      className="flex-1"
-                    >
-                      {isSubmitting ? 'Booking...' : 'Confirm Booking'}
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setIsBookingDialogOpen(false)}
-                      className="flex-1"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-3">
-        {ticketRows.map((row, rowIndex) => (
-          <div key={rowIndex} className="space-y-2">
-            <h3 className="text-sm font-medium text-gray-600 text-center">
-              Tickets {rowIndex * 10 + 1}-{(rowIndex + 1) * 10}
-            </h3>
-            <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-              {row.map(ticket => {
-                const status = getTicketStatus(ticket.id);
-                const booking = bookings.find(b => b.ticket_id === ticket.id);
-                
-                return (
-                  <div key={ticket.id} className="relative">
-                    <div
-                      onClick={() => handleTicketClick(ticket.id)}
-                      className={`
-                        p-2 border rounded text-center text-sm transition-colors min-h-[48px] flex flex-col justify-center
-                        ${getTicketStyles(status)}
-                      `}
-                    >
-                      <div className="font-medium">{ticket.ticket_number}</div>
-                      {booking && (
-                        <div className="text-xs text-gray-600 mt-1 truncate">
-                          {booking.player_name}
-                        </div>
-                      )}
+    <>
+      <Card className="p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Ticket Booking</h2>
+          {selectedTickets.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">
+                {selectedTickets.length} ticket(s) selected
+              </span>
+              <Button variant="outline" size="sm" onClick={clearSelection}>
+                <X size={16} />
+                Clear
+              </Button>
+              <Dialog open={isBookingDialogOpen} onOpenChange={setIsBookingDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>Book Selected Tickets</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Book {selectedTickets.length} Ticket(s)</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="playerName">Player Name *</Label>
+                      <Input
+                        id="playerName"
+                        value={playerName}
+                        onChange={(e) => setPlayerName(e.target.value)}
+                        placeholder="Enter player name"
+                        className="mt-1"
+                      />
                     </div>
-                    {booking && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="absolute -top-1 -right-1 h-6 w-6 p-0 bg-white border border-gray-300 rounded-full"
-                        onClick={() => handleEditBooking(booking)}
+                    <div>
+                      <Label htmlFor="playerPhone">Player Phone (Optional)</Label>
+                      <Input
+                        id="playerPhone"
+                        type="tel"
+                        value={playerPhone}
+                        onChange={(e) => setPlayerPhone(e.target.value)}
+                        placeholder="+1234567890"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Selected tickets: {selectedTickets.join(', ')}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={handleBookTickets}
+                        disabled={isSubmitting}
+                        className="flex-1"
                       >
-                        <Edit size={12} />
+                        {isSubmitting ? 'Booking...' : 'Confirm Booking'}
                       </Button>
-                    )}
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setIsBookingDialogOpen(false)}
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
                   </div>
-                );
-              })}
+                </DialogContent>
+              </Dialog>
             </div>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          {ticketRows.map((row, rowIndex) => (
+            <div key={rowIndex} className="space-y-2">
+              <h3 className="text-sm font-medium text-gray-600 text-center">
+                Tickets {rowIndex * 10 + 1}-{(rowIndex + 1) * 10}
+              </h3>
+              <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                {row.map(ticket => {
+                  const status = getTicketStatus(ticket.id);
+                  const booking = bookings.find(b => b.ticket_id === ticket.id);
+                  
+                  return (
+                    <div key={ticket.id}>
+                      <div
+                        onClick={() => handleTicketClick(ticket.id)}
+                        className={`
+                          p-2 border rounded text-center text-sm transition-colors min-h-[48px] flex flex-col justify-center
+                          ${getTicketStyles(status)}
+                        `}
+                      >
+                        <div className="font-medium">{ticket.ticket_number}</div>
+                        {booking && (
+                          <div className="text-xs text-gray-600 mt-1 truncate">
+                            {booking.player_name}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 text-xs text-gray-500 space-y-1">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
+            <span>Available</span>
           </div>
-        ))}
-      </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-blue-200 border border-blue-400 rounded"></div>
+            <span>Selected</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-red-200 border border-red-400 rounded"></div>
+            <span>Booked</span>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-6">
+        <h2 className="text-xl font-semibold mb-4">Bookings ({bookings.length})</h2>
+        <div className="space-y-2 max-h-64 overflow-y-auto">
+          {bookings.length > 0 ? (
+            bookings.map(booking => (
+              <div key={booking.id} className="flex justify-between items-center p-3 bg-gray-100 rounded">
+                <div className="flex-1">
+                  <span className="font-medium">Ticket {booking.ticket_id}</span>
+                  <span className="ml-4">{booking.player_name}</span>
+                  <span className="ml-4 text-gray-600">{booking.player_phone}</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleEditBooking(booking)}
+                  className="flex items-center gap-1"
+                >
+                  <Edit size={14} />
+                  Edit
+                </Button>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500">No bookings yet</p>
+          )}
+        </div>
+      </Card>
 
       {/* Edit Booking Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -367,22 +401,7 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
           </div>
         </DialogContent>
       </Dialog>
-
-      <div className="mt-4 text-xs text-gray-500 space-y-1">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
-          <span>Available</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-blue-200 border border-blue-400 rounded"></div>
-          <span>Selected</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-red-200 border border-red-400 rounded"></div>
-          <span>Booked (click edit icon to modify)</span>
-        </div>
-      </div>
-    </Card>
+    </>
   );
 };
 
