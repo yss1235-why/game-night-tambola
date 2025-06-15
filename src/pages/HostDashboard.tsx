@@ -600,12 +600,14 @@ const HostDashboard: React.FC = () => {
   };
 
   const prizeOptions: { value: PrizeType; label: string }[] = [
+    { value: 'early_five', label: 'Early Five' },
+    { value: 'corners', label: 'Four Corners' },
     { value: 'first_line', label: 'First Line' },
     { value: 'second_line', label: 'Second Line' },
     { value: 'third_line', label: 'Third Line' },
+    { value: 'half_sheet', label: 'Half Sheet' },
     { value: 'full_house', label: 'Full House' },
-    { value: 'early_five', label: 'Early Five' },
-    { value: 'corners', label: 'Corners' }
+    { value: 'full_sheet', label: 'Full Sheet' }
   ];
 
   // Reactive computed values based on current game state
