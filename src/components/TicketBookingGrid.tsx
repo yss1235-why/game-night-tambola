@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -359,23 +358,17 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
             <div key={rowIndex} className="grid grid-cols-10 gap-1">
               {row.map(({ ticketNumber, ticket }) => {
                 const status = getTicketStatus(ticketNumber);
-                const booking = ticket ? bookings.find(b => b.ticket_id === ticket.id) : null;
                 
                 return (
                   <div
                     key={ticketNumber}
                     onClick={() => handleTicketClick(ticketNumber)}
                     className={`
-                      aspect-square border rounded text-center text-xs transition-colors flex flex-col justify-center items-center p-1
+                      aspect-square border rounded text-center text-xs transition-colors flex items-center justify-center
                       ${getTicketStyles(status)}
                     `}
                   >
-                    <div className="font-medium text-xs">{ticketNumber}</div>
-                    {booking && (
-                      <div className="text-[10px] text-gray-600 mt-0.5 truncate max-w-full">
-                        {booking.player_name.split(' ')[0]}
-                      </div>
-                    )}
+                    <div className="font-medium">{ticketNumber}</div>
                   </div>
                 );
               })}
