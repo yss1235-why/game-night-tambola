@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,8 @@ import { Trash2, LogOut } from 'lucide-react';
 import WinnersList from '@/components/WinnersList';
 import CreateHostForm from '@/components/CreateHostForm';
 import HostManagement from '@/components/HostManagement';
+import SheetValidation from '@/components/SheetValidation';
+import { getWinningHalfSheet, getWinningFullSheet } from '@/utils/sheetValidation';
 
 interface Host {
   id: string;
@@ -201,6 +202,44 @@ const AdminPanel = () => {
     return host ? `${host.name} (${host.email})` : 'Unknown Host';
   };
 
+  const checkForSheetWinners = async () => {
+    if (!currentGame || currentGame.status !== 'active' || !currentGame.selected_prizes) {
+      return;
+    }
+
+    const maxTickets = currentGame.max_tickets || 100;
+
+    // Check for half sheet winner
+    if (currentGame.selected_prizes.includes('half_sheet') && !winners.some(w => w.prize_type === 'half_sheet')) {
+      const winningHalfSheet = getWinningHalfSheet(bookings, tickets, currentGame.numbers_called, maxTickets);
+      if (winningHalfSheet) {
+        const firstTicket = tickets.find(t => t.ticket_number === winningHalfSheet.tickets[0]);
+        if (firstTicket) {
+          await declareWinner(firstTicket.id, 'half_sheet');
+          console.log('Half sheet winner detected:', winningHalfSheet);
+        }
+      }
+    }
+
+    // Check for full sheet winner
+    if (currentGame.selected_prizes.includes('full_sheet') && !winners.some(w => w.prize_type === 'full_sheet')) {
+      const winningFullSheet = getWinningFullSheet(bookings, tickets, currentGame.numbers_called, maxTickets);
+      if (winningFullSheet) {
+        const firstTicket = tickets.find(t => t.ticket_number === winningFullSheet.tickets[0]);
+        if (firstTicket) {
+          await declareWinner(firstTicket.id, 'full_sheet');
+          console.log('Full sheet winner detected:', winningFullSheet);
+        }
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (currentGame && currentGame.status === 'active') {
+      checkForSheetWinners();
+    }
+  }, [currentGame?.numbers_called, bookings, winners]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 p-4 flex items-center justify-center">
@@ -210,182 +249,206 @@ const AdminPanel = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 p-4">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <Card className="p-6 bg-white/90 backdrop-blur-sm shadow-lg border-gray-200">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-800">Admin Panel</h1>
-            <Button 
-              onClick={handleLogout}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <LogOut size={16} />
-              Logout
-            </Button>
-          </div>
+    <div className="container mx-auto p-4 space-y-6">
+      <h1 className="text-3xl font-bold text-center">Admin Panel</h1>
+      
+      {isLoading ? (
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 p-4 flex items-center justify-center">
+          <div className="text-lg">Loading admin panel...</div>
+        </div>
+      ) : !currentGame ? (
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 p-4 flex items-center justify-center">
+          <div className="text-lg">No active game found</div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            <Card className="p-6 bg-white/90 backdrop-blur-sm shadow-lg border-gray-200">
+              <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold text-gray-800">Admin Panel</h1>
+                <Button 
+                  onClick={handleLogout}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <LogOut size={16} />
+                  Logout
+                </Button>
+              </div>
 
-          {/* Tab Navigation */}
-          <div className="flex gap-4 mb-6">
-            <Button
-              variant={activeTab === 'winners' ? 'default' : 'outline'}
-              onClick={() => setActiveTab('winners')}
-            >
-              Winner Management
-            </Button>
-            <Button
-              variant={activeTab === 'hosts' ? 'default' : 'outline'}
-              onClick={() => setActiveTab('hosts')}
-            >
-              Create Host
-            </Button>
-            <Button
-              variant={activeTab === 'management' ? 'default' : 'outline'}
-              onClick={() => setActiveTab('management')}
-            >
-              Host Management
-            </Button>
-          </div>
+              {/* Tab Navigation */}
+              <div className="flex gap-4 mb-6">
+                <Button
+                  variant={activeTab === 'winners' ? 'default' : 'outline'}
+                  onClick={() => setActiveTab('winners')}
+                >
+                  Winner Management
+                </Button>
+                <Button
+                  variant={activeTab === 'hosts' ? 'default' : 'outline'}
+                  onClick={() => setActiveTab('hosts')}
+                >
+                  Create Host
+                </Button>
+                <Button
+                  variant={activeTab === 'management' ? 'default' : 'outline'}
+                  onClick={() => setActiveTab('management')}
+                >
+                  Host Management
+                </Button>
+              </div>
 
-          {/* Debug info */}
-          <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>Database Status:</strong> Found {hosts.length} hosts in database
-              {hosts.length > 0 && (
-                <span className="ml-2">
-                  - Active: {hosts.filter(h => h.is_active).length}
-                </span>
-              )}
-            </p>
-          </div>
+              {/* Debug info */}
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Database Status:</strong> Found {hosts.length} hosts in database
+                  {hosts.length > 0 && (
+                    <span className="ml-2">
+                      - Active: {hosts.filter(h => h.is_active).length}
+                    </span>
+                  )}
+                </p>
+              </div>
 
-          {/* Tab Content */}
-          {activeTab === 'winners' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div>
-                <h2 className="text-xl font-semibold mb-4">Manage Winners</h2>
-                
-                <div className="space-y-4">
+              {/* Tab Content */}
+              {activeTab === 'winners' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div>
-                    <Label>Host</Label>
-                    <Select value={selectedHostId} onValueChange={setSelectedHostId}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder={hosts.length > 0 ? "Select host" : "No hosts found"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {hosts.length > 0 ? (
-                          hosts.map((host) => (
-                            <SelectItem key={host.id} value={host.id}>
-                              {host.name} ({host.email}) {!host.is_active && '(Inactive)'}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="no-hosts" disabled>
-                            No hosts available
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                    <h2 className="text-xl font-semibold mb-4">Manage Winners</h2>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <Label>Host</Label>
+                        <Select value={selectedHostId} onValueChange={setSelectedHostId}>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder={hosts.length > 0 ? "Select host" : "No hosts found"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {hosts.length > 0 ? (
+                              hosts.map((host) => (
+                                <SelectItem key={host.id} value={host.id}>
+                                  {host.name} ({host.email}) {!host.is_active && '(Inactive)'}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="no-hosts" disabled>
+                                No hosts available
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                  <div>
-                    <Label htmlFor="ticketNumber">Ticket Number</Label>
-                    <Input
-                      id="ticketNumber"
-                      type="number"
-                      value={selectedTicketNumber}
-                      onChange={(e) => setSelectedTicketNumber(e.target.value)}
-                      placeholder="Enter ticket number..."
-                      className="mt-1"
-                    />
-                  </div>
+                      <div>
+                        <Label htmlFor="ticketNumber">Ticket Number</Label>
+                        <Input
+                          id="ticketNumber"
+                          type="number"
+                          value={selectedTicketNumber}
+                          onChange={(e) => setSelectedTicketNumber(e.target.value)}
+                          placeholder="Enter ticket number..."
+                          className="mt-1"
+                        />
+                      </div>
 
-                  <div>
-                    <Label>Prize Type</Label>
-                    <Select value={selectedPrizeType} onValueChange={(value: PrizeType) => setSelectedPrizeType(value)}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select prize type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {prizeOptions.map((prize) => (
-                          <SelectItem key={prize.value} value={prize.value}>
-                            {prize.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                      <div>
+                        <Label>Prize Type</Label>
+                        <Select value={selectedPrizeType} onValueChange={(value: PrizeType) => setSelectedPrizeType(value)}>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Select prize type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {prizeOptions.map((prize) => (
+                              <SelectItem key={prize.value} value={prize.value}>
+                                {prize.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                  <Button onClick={handleAddWinner} className="w-full" disabled={hosts.length === 0}>
-                    {hosts.length > 0 ? 'Add to Winner List' : 'No hosts available'}
-                  </Button>
-                </div>
-
-                {adminWinners.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="text-lg font-medium mb-3">Admin Winner List</h3>
-                    <div className="space-y-2">
-                      {adminWinners.map((winner, index) => (
-                        <div key={index} className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                          <div>
-                            <span className="font-medium">Ticket #{winner.ticketNumber}</span>
-                            <span className="ml-2 text-gray-600">
-                              {prizeOptions.find(p => p.value === winner.prizeType)?.label}
-                            </span>
-                            <div className="text-sm text-gray-500">
-                              Host: {getHostName(winner.hostId)}
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              onClick={() => handleCreateWinner(winner.ticketNumber, winner.prizeType)}
-                              className="bg-green-600"
-                            >
-                              Create Winner
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleRemoveWinner(winner.ticketNumber, winner.prizeType)}
-                            >
-                              <Trash2 size={16} />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+                      <Button onClick={handleAddWinner} className="w-full" disabled={hosts.length === 0}>
+                        {hosts.length > 0 ? 'Add to Winner List' : 'No hosts available'}
+                      </Button>
                     </div>
+
+                    {adminWinners.length > 0 && (
+                      <div className="mt-6">
+                        <h3 className="text-lg font-medium mb-3">Admin Winner List</h3>
+                        <div className="space-y-2">
+                          {adminWinners.map((winner, index) => (
+                            <div key={index} className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                              <div>
+                                <span className="font-medium">Ticket #{winner.ticketNumber}</span>
+                                <span className="ml-2 text-gray-600">
+                                  {prizeOptions.find(p => p.value === winner.prizeType)?.label}
+                                </span>
+                                <div className="text-sm text-gray-500">
+                                  Host: {getHostName(winner.hostId)}
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleCreateWinner(winner.ticketNumber, winner.prizeType)}
+                                  className="bg-green-600"
+                                >
+                                  Create Winner
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleRemoveWinner(winner.ticketNumber, winner.prizeType)}
+                                >
+                                  <Trash2 size={16} />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              {/* Current Winners */}
-              <div>
-                <h2 className="text-xl font-semibold mb-4">Current Game Winners</h2>
-                {winners.length > 0 ? (
-                  <WinnersList 
-                    winners={winners}
-                    tickets={tickets}
-                    bookings={bookings}
-                  />
-                ) : (
-                  <Card className="p-4">
-                    <p className="text-gray-500 text-center">No winners yet</p>
-                  </Card>
-                )}
-              </div>
-            </div>
-          )}
+                  {/* Current Winners */}
+                  <div>
+                    <h2 className="text-xl font-semibold mb-4">Current Game Winners</h2>
+                    {winners.length > 0 ? (
+                      <WinnersList 
+                        winners={winners}
+                        tickets={tickets}
+                        bookings={bookings}
+                      />
+                    ) : (
+                      <Card className="p-4">
+                        <p className="text-gray-500 text-center">No winners yet</p>
+                      </Card>
+                    )}
+                  </div>
+                </div>
+              )}
 
-          {activeTab === 'hosts' && (
-            <CreateHostForm onHostCreated={fetchHosts} />
-          )}
+              {activeTab === 'hosts' && (
+                <CreateHostForm onHostCreated={fetchHosts} />
+              )}
 
-          {activeTab === 'management' && (
-            <HostManagement />
-          )}
-        </Card>
-      </div>
+              {activeTab === 'management' && (
+                <HostManagement />
+              )}
+            </Card>
+          </div>
+          
+          <div className="space-y-6">
+            {/* Add Sheet Validation Component */}
+            <SheetValidation
+              bookings={bookings}
+              tickets={tickets}
+              calledNumbers={currentGame.numbers_called}
+              maxTickets={currentGame.max_tickets || 100}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
