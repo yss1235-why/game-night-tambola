@@ -215,7 +215,7 @@ const AdminPanel = () => {
       if (winningHalfSheet) {
         const firstTicket = tickets.find(t => t.ticket_number === winningHalfSheet.tickets[0]);
         if (firstTicket) {
-          await declareWinner(firstTicket.id, 'half_sheet');
+          await handleCreateWinner(firstTicket.ticket_number, 'half_sheet');
           console.log('Half sheet winner detected:', winningHalfSheet);
         }
       }
@@ -227,7 +227,7 @@ const AdminPanel = () => {
       if (winningFullSheet) {
         const firstTicket = tickets.find(t => t.ticket_number === winningFullSheet.tickets[0]);
         if (firstTicket) {
-          await declareWinner(firstTicket.id, 'full_sheet');
+          await handleCreateWinner(firstTicket.ticket_number, 'full_sheet');
           console.log('Full sheet winner detected:', winningFullSheet);
         }
       }
