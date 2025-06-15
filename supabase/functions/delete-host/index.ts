@@ -56,11 +56,49 @@ serve(async (req) => {
       )
     }
 
-    // Delete or update related games first
+    // Delete all related data in the correct order
     if (games && games.length > 0) {
-      console.log(`Found ${games.length} games associated with host. Deleting them first.`)
+      console.log(`Found ${games.length} games associated with host. Deleting all related data.`)
       
-      // Delete all games associated with this host
+      // Step 1: Delete all bookings for these games
+      for (const game of games) {
+        const { error: bookingsDeleteError } = await supabaseAdmin
+          .from('bookings')
+          .delete()
+          .eq('game_id', game.id)
+
+        if (bookingsDeleteError) {
+          console.error('Error deleting bookings for game:', game.id, bookingsDeleteError)
+          return new Response(
+            JSON.stringify({ error: 'Failed to delete game bookings' }),
+            { 
+              status: 500, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
+        }
+      }
+
+      // Step 2: Delete all winners for these games
+      for (const game of games) {
+        const { error: winnersDeleteError } = await supabaseAdmin
+          .from('winners')
+          .delete()
+          .eq('game_id', game.id)
+
+        if (winnersDeleteError) {
+          console.error('Error deleting winners for game:', game.id, winnersDeleteError)
+          return new Response(
+            JSON.stringify({ error: 'Failed to delete game winners' }),
+            { 
+              status: 500, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
+        }
+      }
+
+      // Step 3: Delete all games associated with this host
       const { error: gamesDeleteError } = await supabaseAdmin
         .from('games')
         .delete()
