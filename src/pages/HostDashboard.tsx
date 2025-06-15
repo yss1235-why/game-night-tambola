@@ -206,7 +206,9 @@ const HostDashboard: React.FC = () => {
       return;
     }
 
-    if (editMaxTickets < 1 || editMaxTickets > 1000) {
+    // Allow editMaxTickets to be 0 or validate it's a positive number
+    const validEditMaxTickets = editMaxTickets || 100;
+    if (validEditMaxTickets < 1 || validEditMaxTickets > 1000) {
       toast({
         title: "Error",
         description: "Max tickets must be between 1 and 1000",
@@ -219,11 +221,11 @@ const HostDashboard: React.FC = () => {
       const { error } = await supabase
         .from('games')
         .update({
-          number_calling_delay: editDelay,
+          number_calling_delay: editDelay || 5,
           ticket_set: editTicketSet,
           selected_prizes: editPrizes as string[],
           host_phone: editHostPhone,
-          max_tickets: editMaxTickets
+          max_tickets: validEditMaxTickets
         })
         .eq('id', currentGame.id);
 
@@ -267,7 +269,9 @@ const HostDashboard: React.FC = () => {
       return;
     }
 
-    if (maxTickets < 1 || maxTickets > 1000) {
+    // Allow maxTickets to be 0 or validate it's a positive number
+    const validMaxTickets = maxTickets || 100;
+    if (validMaxTickets < 1 || validMaxTickets > 1000) {
       toast({
         title: "Error",
         description: "Max tickets must be between 1 and 1000",
@@ -288,11 +292,11 @@ const HostDashboard: React.FC = () => {
         .insert([{
           host_id: user.id,
           status: 'waiting',
-          number_calling_delay: numberCallingDelay,
+          number_calling_delay: numberCallingDelay || 5,
           host_phone: phoneToUse,
           ticket_set: selectedTicketSet,
           selected_prizes: selectedPrizes as string[],
-          max_tickets: maxTickets
+          max_tickets: validMaxTickets
         }])
         .select()
         .single();
@@ -603,11 +607,12 @@ const HostDashboard: React.FC = () => {
                     <Input
                       id="maxTickets"
                       type="number"
-                      min="1"
+                      min="0"
                       max="1000"
-                      value={maxTickets}
-                      onChange={(e) => setMaxTickets(Number(e.target.value))}
+                      value={maxTickets || ''}
+                      onChange={(e) => setMaxTickets(e.target.value === '' ? 0 : Number(e.target.value))}
                       className="mt-1"
+                      placeholder="Enter number of tickets"
                     />
                   </div>
 
@@ -634,11 +639,12 @@ const HostDashboard: React.FC = () => {
                     <Input
                       id="delay"
                       type="number"
-                      min="2"
+                      min="0"
                       max="10"
-                      value={numberCallingDelay}
-                      onChange={(e) => setNumberCallingDelay(Number(e.target.value))}
+                      value={numberCallingDelay || ''}
+                      onChange={(e) => setNumberCallingDelay(e.target.value === '' ? 0 : Number(e.target.value))}
                       className="mt-1"
+                      placeholder="Enter delay in seconds"
                     />
                   </div>
 
@@ -766,11 +772,12 @@ const HostDashboard: React.FC = () => {
                 <Input
                   id="editMaxTickets"
                   type="number"
-                  min="1"
+                  min="0"
                   max="1000"
-                  value={editMaxTickets}
-                  onChange={(e) => setEditMaxTickets(Number(e.target.value))}
+                  value={editMaxTickets || ''}
+                  onChange={(e) => setEditMaxTickets(e.target.value === '' ? 0 : Number(e.target.value))}
                   className="mt-1"
+                  placeholder="Enter number of tickets"
                 />
               </div>
 
@@ -797,11 +804,12 @@ const HostDashboard: React.FC = () => {
                 <Input
                   id="editDelay"
                   type="number"
-                  min="2"
+                  min="0"
                   max="10"
-                  value={editDelay}
-                  onChange={(e) => setEditDelay(Number(e.target.value))}
+                  value={editDelay || ''}
+                  onChange={(e) => setEditDelay(e.target.value === '' ? 0 : Number(e.target.value))}
                   className="mt-1"
+                  placeholder="Enter delay in seconds"
                 />
               </div>
 
