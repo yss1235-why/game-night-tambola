@@ -24,6 +24,7 @@ const HostManagement: React.FC = () => {
   const [extensionDays, setExtensionDays] = useState('30');
   const [newPassword, setNewPassword] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     fetchHosts();
@@ -127,10 +128,21 @@ const HostManagement: React.FC = () => {
     }
 
     try {
-      // Delete auth user (this will cascade to hosts table)
-      const { error } = await supabase.auth.admin.deleteUser(hostId);
+      setIsDeleting(hostId);
+      
+      // Call the edge function to delete the host
+      const { data, error } = await supabase.functions.invoke('delete-host', {
+        body: { hostId }
+      });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error calling delete-host function:', error);
+        throw error;
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
 
       toast({
         title: "Success",
@@ -145,6 +157,8 @@ const HostManagement: React.FC = () => {
         description: "Failed to delete host",
         variant: "destructive"
       });
+    } finally {
+      setIsDeleting(null);
     }
   };
 
@@ -245,10 +259,15 @@ const HostManagement: React.FC = () => {
                         size="sm"
                         variant="outline"
                         onClick={() => deleteHost(host.id)}
+                        disabled={isDeleting === host.id}
                         className="text-red-600 hover:text-red-700"
                         title="Delete Host"
                       >
-                        <Trash2 size={16} />
+                        {isDeleting === host.id ? (
+                          <span className="animate-spin">⏳</span>
+                        ) : (
+                          <Trash2 size={16} />
+                        )}
                       </Button>
                     </div>
                   </TableCell>
