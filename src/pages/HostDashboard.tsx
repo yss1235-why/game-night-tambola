@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Slider } from '@/components/ui/slider';
 import { useGameData } from '@/hooks/useGameData';
 import { supabase } from '@/integrations/supabase/client';
 import { PrizeType } from '@/types/game';
@@ -31,6 +32,7 @@ const HostDashboard: React.FC = () => {
   const [editHostPhone, setEditHostPhone] = useState('');
   const [editMaxTickets, setEditMaxTickets] = useState('');
   const [currentHostData, setCurrentHostData] = useState<any>(null);
+  const [liveDelay, setLiveDelay] = useState<number[]>([5]);
   const audioContextRef = useRef<AudioContext | null>(null);
 
   // Load saved game settings from localStorage
@@ -123,6 +125,13 @@ const HostDashboard: React.FC = () => {
     };
   }, []);
 
+  // Set live delay from current game when it changes
+  useEffect(() => {
+    if (currentGame) {
+      setLiveDelay([currentGame.number_calling_delay || 5]);
+    }
+  }, [currentGame]);
+
   // Function to play number announcement
   const playNumberAudio = (number: number) => {
     if (!audioContextRef.current) return;
@@ -185,6 +194,35 @@ const HostDashboard: React.FC = () => {
       setEditMaxTickets((currentGame.max_tickets || 100).toString());
     }
   }, [currentGame, currentHostData]);
+
+  // Handle live delay change during active game
+  const handleLiveDelayChange = async (newDelay: number[]) => {
+    if (!currentGame) return;
+    
+    const delayValue = newDelay[0];
+    setLiveDelay(newDelay);
+    
+    try {
+      const { error } = await supabase
+        .from('games')
+        .update({ number_calling_delay: delayValue })
+        .eq('id', currentGame.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Number calling delay updated to ${delayValue} seconds`
+      });
+    } catch (error) {
+      console.error('Error updating delay:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update delay",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -733,17 +771,22 @@ const HostDashboard: React.FC = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="delay">Number Calling Delay (seconds)</Label>
-                    <Input
-                      id="delay"
-                      type="number"
-                      min="0"
-                      max="10"
-                      value={numberCallingDelay}
-                      onChange={handleDelayChange}
-                      className="mt-1"
-                      placeholder="Enter delay in seconds"
-                    />
+                    <Label htmlFor="delay">Number Calling Delay</Label>
+                    <div className="mt-2 space-y-2">
+                      <Slider
+                        value={[parseInt(numberCallingDelay) || 5]}
+                        onValueChange={(value) => setNumberCallingDelay(value[0].toString())}
+                        max={10}
+                        min={2}
+                        step={1}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-sm text-gray-500">
+                        <span>2s</span>
+                        <span>{numberCallingDelay}s</span>
+                        <span>10s</span>
+                      </div>
+                    </div>
                   </div>
 
                   <Button onClick={createNewGame} className="w-full">
@@ -779,6 +822,28 @@ const HostDashboard: React.FC = () => {
                   <p><strong>Ticket Set:</strong> {currentGame.ticket_set || 'Not set'}</p>
                   <p><strong>Selected Prizes:</strong> {currentGame.selected_prizes?.join(', ') || 'None'}</p>
                   <p><strong>Number Calling Active:</strong> {isNumberCalling ? 'Yes' : 'No'}</p>
+                  
+                  {/* Live delay adjustment when game is active or paused */}
+                  {(currentGame.status === 'active' || currentGame.status === 'paused') && (
+                    <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                      <Label className="text-sm font-medium">Live Number Calling Delay</Label>
+                      <div className="mt-2 space-y-2">
+                        <Slider
+                          value={liveDelay}
+                          onValueChange={handleLiveDelayChange}
+                          max={10}
+                          min={2}
+                          step={1}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-sm text-gray-500">
+                          <span>2s</span>
+                          <span className="font-medium text-blue-600">{liveDelay[0]}s</span>
+                          <span>10s</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="space-y-2 mt-4">
                     {getGameControlButton()}
@@ -898,17 +963,22 @@ const HostDashboard: React.FC = () => {
               </div>
 
               <div>
-                <Label htmlFor="editDelay">Number Calling Delay (seconds)</Label>
-                <Input
-                  id="editDelay"
-                  type="number"
-                  min="0"
-                  max="10"
-                  value={editDelay}
-                  onChange={(e) => setEditDelay(e.target.value)}
-                  className="mt-1"
-                  placeholder="Enter delay in seconds"
-                />
+                <Label htmlFor="editDelay">Number Calling Delay</Label>
+                <div className="mt-2 space-y-2">
+                  <Slider
+                    value={[parseInt(editDelay) || 5]}
+                    onValueChange={(value) => setEditDelay(value[0].toString())}
+                    max={10}
+                    min={2}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-sm text-gray-500">
+                    <span>2s</span>
+                    <span>{editDelay}s</span>
+                    <span>10s</span>
+                  </div>
+                </div>
               </div>
 
               <div className="flex gap-2">
