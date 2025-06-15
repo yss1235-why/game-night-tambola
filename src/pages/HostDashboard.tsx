@@ -370,8 +370,8 @@ const HostDashboard: React.FC = () => {
   };
 
   const handleBookingComplete = () => {
-    // Trigger refresh of game data
-    window.location.reload();
+    // The useGameData hook will automatically update via real-time subscriptions
+    // No need to reload the page
   };
 
   const prizeOptions: { value: PrizeType; label: string }[] = [

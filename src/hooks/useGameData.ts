@@ -24,7 +24,14 @@ export const useGameData = () => {
       }, (payload) => {
         console.log('Games change:', payload);
         if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
-          setCurrentGame(payload.new as Game);
+          const updatedGame = payload.new as Game;
+          setCurrentGame(updatedGame);
+          
+          // When max_tickets changes, we need to refresh bookings to ensure UI consistency
+          if (payload.eventType === 'UPDATE' && payload.old && 
+              (payload.old as Game).max_tickets !== updatedGame.max_tickets) {
+            fetchBookingsForGame(updatedGame.id);
+          }
         }
       })
       .subscribe();
@@ -39,6 +46,10 @@ export const useGameData = () => {
         console.log('Bookings change:', payload);
         if (payload.eventType === 'INSERT') {
           setBookings(prev => [...prev, payload.new as Booking]);
+        } else if (payload.eventType === 'UPDATE') {
+          setBookings(prev => prev.map(booking => 
+            booking.id === payload.new.id ? payload.new as Booking : booking
+          ));
         }
       })
       .subscribe();
@@ -65,6 +76,18 @@ export const useGameData = () => {
     };
   }, []);
 
+  const fetchBookingsForGame = async (gameId: string) => {
+    try {
+      const { data: gameBookings } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('game_id', gameId);
+      setBookings(gameBookings || []);
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+    }
+  };
+
   const fetchInitialData = async () => {
     try {
       // Get current active game or latest game
@@ -88,11 +111,7 @@ export const useGameData = () => {
         }
 
         // Fetch bookings for current game
-        const { data: gameBookings } = await supabase
-          .from('bookings')
-          .select('*')
-          .eq('game_id', game.id);
-        setBookings(gameBookings || []);
+        await fetchBookingsForGame(game.id);
 
         // Fetch winners for current game
         const { data: gameWinners } = await supabase
