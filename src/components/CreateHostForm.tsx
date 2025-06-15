@@ -66,25 +66,33 @@ const CreateHostForm: React.FC<CreateHostFormProps> = ({ onHostCreated }) => {
         return;
       }
 
-      if (data?.error) {
+      // Check if the response indicates success
+      if (data && data.success) {
+        console.log('Host created successfully:', data);
+
+        toast({
+          title: "Success",
+          description: "Host created successfully!"
+        });
+
+        setFormData({ name: '', email: '', phone: '', password: '' });
+        onHostCreated();
+      } else if (data && data.error) {
         console.error('Edge function returned error:', data.error);
         toast({
           title: "Error",
           description: data.error,
           variant: "destructive"
         });
-        return;
+      } else {
+        // Fallback for unexpected response format
+        console.error('Unexpected response format:', data);
+        toast({
+          title: "Error",
+          description: "Unexpected response from server",
+          variant: "destructive"
+        });
       }
-
-      console.log('Host created successfully:', data);
-
-      toast({
-        title: "Success",
-        description: "Host created successfully!"
-      });
-
-      setFormData({ name: '', email: '', phone: '', password: '' });
-      onHostCreated();
     } catch (error) {
       console.error('Error creating host:', error);
       
