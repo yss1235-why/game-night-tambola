@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useGameData } from '@/hooks/useGameData';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -12,6 +12,9 @@ const HostDashboard: React.FC = () => {
   const { currentGame, bookings } = useGameData();
   const { toast } = useToast();
   const [numberCallingDelay, setNumberCallingDelay] = useState(5);
+  const [hostPhone, setHostPhone] = useState('');
+  const [selectedTicketSet, setSelectedTicketSet] = useState('demo-set-1');
+  const [selectedPrizes, setSelectedPrizes] = useState<string[]>(['first_line', 'full_house']);
   const [isNumberCalling, setIsNumberCalling] = useState(false);
 
   useEffect(() => {
@@ -20,14 +23,43 @@ const HostDashboard: React.FC = () => {
     }
   }, [currentGame?.status]);
 
+  const handlePrizeToggle = (prize: string) => {
+    setSelectedPrizes(prev => 
+      prev.includes(prize) 
+        ? prev.filter(p => p !== prize)
+        : [...prev, prize]
+    );
+  };
+
   const createNewGame = async () => {
+    if (!hostPhone.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a WhatsApp phone number",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (selectedPrizes.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please select at least one prize",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('games')
         .insert([{
           host_id: 'temp-host-id', // Will implement proper auth later
           status: 'waiting',
-          number_calling_delay: numberCallingDelay
+          number_calling_delay: numberCallingDelay,
+          host_phone: hostPhone,
+          ticket_set: selectedTicketSet,
+          selected_prizes: selectedPrizes
         }])
         .select()
         .single();
@@ -185,6 +217,15 @@ const HostDashboard: React.FC = () => {
     callNextNumber();
   };
 
+  const prizeOptions = [
+    { value: 'first_line', label: 'First Line' },
+    { value: 'second_line', label: 'Second Line' },
+    { value: 'third_line', label: 'Third Line' },
+    { value: 'full_house', label: 'Full House' },
+    { value: 'early_five', label: 'Early Five' },
+    { value: 'corners', label: 'Corners' }
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -193,9 +234,53 @@ const HostDashboard: React.FC = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h2 className="text-xl font-semibold mb-4">Game Controls</h2>
+              <h2 className="text-xl font-semibold mb-4">Game Setup</h2>
               
               <div className="space-y-4">
+                <div>
+                  <Label htmlFor="hostPhone">WhatsApp Phone Number</Label>
+                  <Input
+                    id="hostPhone"
+                    type="tel"
+                    placeholder="+1234567890"
+                    value={hostPhone}
+                    onChange={(e) => setHostPhone(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="ticketSet">Ticket Set</Label>
+                  <Select value={selectedTicketSet} onValueChange={setSelectedTicketSet}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select ticket set" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="demo-set-1">Demo Set 1 (100 tickets)</SelectItem>
+                      <SelectItem value="demo-set-2">Demo Set 2 (150 tickets)</SelectItem>
+                      <SelectItem value="demo-set-3">Demo Set 3 (200 tickets)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Prize Selection</Label>
+                  <div className="mt-2 space-y-2">
+                    {prizeOptions.map((prize) => (
+                      <div key={prize.value} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={prize.value}
+                          checked={selectedPrizes.includes(prize.value)}
+                          onChange={() => handlePrizeToggle(prize.value)}
+                          className="rounded border-gray-300"
+                        />
+                        <Label htmlFor={prize.value} className="text-sm">{prize.label}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <div>
                   <Label htmlFor="delay">Number Calling Delay (seconds)</Label>
                   <Input
