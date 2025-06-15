@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -63,7 +64,7 @@ const HostDashboard: React.FC = () => {
           number_calling_delay: numberCallingDelay,
           host_phone: hostPhone,
           ticket_set: selectedTicketSet,
-          selected_prizes: selectedPrizes
+          selected_prizes: selectedPrizes as string[] // Convert PrizeType[] to string[] for database
         }])
         .select()
         .single();
