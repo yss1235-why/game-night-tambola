@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,6 @@ import TicketBookingGrid from '@/components/TicketBookingGrid';
 import NumberGrid from '@/components/NumberGrid';
 import WinnersList from '@/components/WinnersList';
 import { detectWinners } from '@/utils/winnerDetection';
-import WinnerAnnouncement from '@/components/WinnerAnnouncement';
 
 const HostDashboard: React.FC = () => {
   const { currentGame, tickets, bookings, winners } = useGameData();
@@ -36,7 +34,6 @@ const HostDashboard: React.FC = () => {
   const [editMaxTickets, setEditMaxTickets] = useState('');
   const [currentHostData, setCurrentHostData] = useState<any>(null);
   const [liveDelay, setLiveDelay] = useState<number[]>([5]);
-  const [announcedWinners, setAnnouncedWinners] = useState<Set<string>>(new Set());
   const audioContextRef = useRef<AudioContext | null>(null);
 
   // Load saved game settings from localStorage
@@ -791,13 +788,6 @@ const HostDashboard: React.FC = () => {
     });
   };
 
-  // Get new winners that haven't been announced yet
-  const newWinners = winners.filter(winner => !announcedWinners.has(winner.id));
-
-  const handleDismissWinner = (winnerId: string) => {
-    setAnnouncedWinners(prev => new Set([...prev, winnerId]));
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -1112,14 +1102,6 @@ const HostDashboard: React.FC = () => {
             </div>
           </DialogContent>
         </Dialog>
-
-        {/* Winner Announcement Overlay */}
-        {newWinners.length > 0 && (
-          <WinnerAnnouncement
-            newWinners={newWinners}
-            onDismiss={handleDismissWinner}
-          />
-        )}
       </div>
     </div>
   );
