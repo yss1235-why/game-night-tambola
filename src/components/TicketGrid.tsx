@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -110,7 +109,6 @@ const TicketGrid: React.FC<TicketGridProps> = ({
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold">
             #{ticket.ticket_number}
           </div>
-          <h3 className="font-bold text-lg text-gray-800">Ticket</h3>
         </div>
       </div>
       

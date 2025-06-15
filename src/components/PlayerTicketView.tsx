@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -147,7 +146,6 @@ const PlayerTicketView: React.FC<PlayerTicketViewProps> = ({
                   <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold">
                     #{ticketNumber}
                   </div>
-                  <h3 className="font-bold text-lg text-gray-800">Ticket</h3>
                 </div>
                 {!ticket && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-2">
