@@ -49,13 +49,22 @@ const CreateHostForm: React.FC<CreateHostFormProps> = ({ onHostCreated }) => {
 
       if (error) {
         console.error('Edge function error:', error);
+        toast({
+          title: "Error",
+          description: error.message || 'Failed to create host',
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Check if the data contains an error (400 status responses)
+      if (data && data.error) {
+        console.error('Edge function returned error:', data.error);
         
-        // If edge function fails, show more detailed error
-        let errorMessage = 'Failed to create host';
-        if (error.message) {
-          errorMessage = error.message;
-        } else if (typeof error === 'string') {
-          errorMessage = error;
+        // Handle specific error messages
+        let errorMessage = data.error;
+        if (data.error.includes('email address has already been registered')) {
+          errorMessage = 'A host with this email address already exists';
         }
         
         toast({
@@ -77,13 +86,6 @@ const CreateHostForm: React.FC<CreateHostFormProps> = ({ onHostCreated }) => {
 
         setFormData({ name: '', email: '', phone: '', password: '' });
         onHostCreated();
-      } else if (data && data.error) {
-        console.error('Edge function returned error:', data.error);
-        toast({
-          title: "Error",
-          description: data.error,
-          variant: "destructive"
-        });
       } else {
         // Fallback for unexpected response format
         console.error('Unexpected response format:', data);
