@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useGameData } from '@/hooks/useGameData';
 import GameStatus from '@/components/GameStatus';
@@ -9,11 +8,13 @@ import { Label } from '@/components/ui/label';
 import NumberGrid from '@/components/NumberGrid';
 import WinnersList from '@/components/WinnersList';
 import PlayerTicketView from '@/components/PlayerTicketView';
+import WinnerAnnouncement from '@/components/WinnerAnnouncement';
 
 const PlayerView: React.FC = () => {
   const { currentGame, tickets, bookings, winners, lastGameWinners, isLoading } = useGameData();
   const [searchTicketNumber, setSearchTicketNumber] = useState('');
   const [viewedTickets, setViewedTickets] = useState<number[]>([]);
+  const [announcedWinners, setAnnouncedWinners] = useState<Set<string>>(new Set());
 
   // Debug log for real-time updates
   React.useEffect(() => {
@@ -39,6 +40,13 @@ const PlayerView: React.FC = () => {
       </div>
     );
   }
+
+  // Get new winners that haven't been announced yet
+  const newWinners = winners.filter(winner => !announcedWinners.has(winner.id));
+
+  const handleDismissWinner = (winnerId: string) => {
+    setAnnouncedWinners(prev => new Set([...prev, winnerId]));
+  };
 
   // Show last game winners if no active game
   if (!currentGame || currentGame.status === 'ended') {
@@ -144,6 +152,14 @@ const PlayerView: React.FC = () => {
             winners={winners}
             tickets={tickets}
             bookings={bookings}
+          />
+        )}
+
+        {/* Winner Announcement Overlay */}
+        {newWinners.length > 0 && (
+          <WinnerAnnouncement
+            newWinners={newWinners}
+            onDismiss={handleDismissWinner}
           />
         )}
       </div>

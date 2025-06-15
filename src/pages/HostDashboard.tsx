@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +15,8 @@ import { toast } from '@/hooks/use-toast';
 import TicketBookingGrid from '@/components/TicketBookingGrid';
 import NumberGrid from '@/components/NumberGrid';
 import WinnersList from '@/components/WinnersList';
+import { detectWinners } from '@/utils/winnerDetection';
+import WinnerAnnouncement from '@/components/WinnerAnnouncement';
 
 const HostDashboard: React.FC = () => {
   const { currentGame, tickets, bookings, winners } = useGameData();
@@ -34,6 +35,7 @@ const HostDashboard: React.FC = () => {
   const [editMaxTickets, setEditMaxTickets] = useState('');
   const [currentHostData, setCurrentHostData] = useState<any>(null);
   const [liveDelay, setLiveDelay] = useState<number[]>([5]);
+  const [announcedWinners, setAnnouncedWinners] = useState<Set<string>>(new Set());
   const audioContextRef = useRef<AudioContext | null>(null);
 
   // Load saved game settings from localStorage
@@ -584,6 +586,40 @@ const HostDashboard: React.FC = () => {
         // Play audio for the called number
         playNumberAudio(nextNumber);
 
+        // Check for new winners after calling the number
+        const newWinners = detectWinners(
+          tickets,
+          bookings,
+          newCalledNumbers,
+          winners,
+          latestGame.max_tickets || 100
+        );
+
+        // Add new winners to database
+        if (newWinners.length > 0) {
+          console.log('New winners detected:', newWinners);
+          
+          const winnerInserts = newWinners.map(winner => ({
+            game_id: currentGame.id,
+            ticket_id: winner.ticketId,
+            prize_type: winner.prizeType,
+            claimed_at: new Date().toISOString()
+          }));
+
+          const { error: winnerError } = await supabase
+            .from('winners')
+            .insert(winnerInserts);
+
+          if (winnerError) {
+            console.error('Error inserting winners:', winnerError);
+          } else {
+            toast({
+              title: "New Winner!",
+              description: `${newWinners.length} new winner(s) detected!`
+            });
+          }
+        }
+
         // Schedule next number
         setTimeout(callNextNumber, (latestGame.number_calling_delay || 5) * 1000);
       } catch (error) {
@@ -688,6 +724,13 @@ const HostDashboard: React.FC = () => {
       selectedPrizes,
       maxTickets: parseInt(maxTickets) || 100
     });
+  };
+
+  // Get new winners that haven't been announced yet
+  const newWinners = winners.filter(winner => !announcedWinners.has(winner.id));
+
+  const handleDismissWinner = (winnerId: string) => {
+    setAnnouncedWinners(prev => new Set([...prev, winnerId]));
   };
 
   return (
@@ -1004,6 +1047,14 @@ const HostDashboard: React.FC = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Winner Announcement Overlay */}
+        {newWinners.length > 0 && (
+          <WinnerAnnouncement
+            newWinners={newWinners}
+            onDismiss={handleDismissWinner}
+          />
+        )}
       </div>
     </div>
   );
