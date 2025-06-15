@@ -73,7 +73,7 @@ const TicketGrid: React.FC<TicketGridProps> = ({
           <div
             key={colIndex}
             className={`
-              h-10 w-10 border-2 rounded-md flex items-center justify-center text-xs font-medium transition-all duration-200
+              h-6 w-6 border-2 rounded-md flex items-center justify-center text-xs font-medium transition-all duration-200
               ${getNumberStyle(num)}
             `}
           >
