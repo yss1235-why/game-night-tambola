@@ -78,6 +78,12 @@ const HostDashboard: React.FC = () => {
     }, 400);
   };
 
+  // Debug effect to log game status changes
+  useEffect(() => {
+    console.log('Current game status changed:', currentGame?.status);
+    console.log('Current game object:', currentGame);
+  }, [currentGame?.status, currentGame]);
+
   useEffect(() => {
     console.log('Game status changed:', currentGame?.status, 'isNumberCalling:', isNumberCalling);
     if (currentGame?.status === 'active' && !isNumberCalling) {
@@ -317,6 +323,7 @@ const HostDashboard: React.FC = () => {
     if (!currentGame) return;
 
     try {
+      console.log('Pausing game, current status:', currentGame.status);
       const { error } = await supabase
         .from('games')
         .update({ status: 'paused' })
@@ -338,6 +345,7 @@ const HostDashboard: React.FC = () => {
     if (!currentGame) return;
 
     try {
+      console.log('Resuming game, current status:', currentGame.status);
       const { error } = await supabase
         .from('games')
         .update({ status: 'active' })
@@ -475,6 +483,39 @@ const HostDashboard: React.FC = () => {
   const showGameSetup = !currentGame || currentGame.status === 'ended';
   const showTicketBooking = currentGame && currentGame.status === 'waiting';
 
+  // Helper function to get button text and action based on current status
+  const getGameControlButton = () => {
+    if (!currentGame) return null;
+
+    console.log('Rendering button for status:', currentGame.status);
+
+    switch (currentGame.status) {
+      case 'waiting':
+        return (
+          <Button onClick={startGame} className="w-full bg-green-600">
+            <Play size={16} className="mr-2" />
+            Start Game
+          </Button>
+        );
+      case 'active':
+        return (
+          <Button onClick={pauseGame} className="w-full bg-yellow-600">
+            <Pause size={16} className="mr-2" />
+            Pause Game
+          </Button>
+        );
+      case 'paused':
+        return (
+          <Button onClick={resumeGame} className="w-full bg-green-600">
+            <Play size={16} className="mr-2" />
+            Resume Game
+          </Button>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -602,35 +643,12 @@ const HostDashboard: React.FC = () => {
                   <p><strong>Number Calling Active:</strong> {isNumberCalling ? 'Yes' : 'No'}</p>
                   
                   <div className="space-y-2 mt-4">
-                    {currentGame.status === 'waiting' && (
-                      <Button onClick={startGame} className="w-full bg-green-600">
-                        <Play size={16} className="mr-2" />
-                        Start Game
+                    {getGameControlButton()}
+                    
+                    {(currentGame.status === 'active' || currentGame.status === 'paused') && (
+                      <Button onClick={endGame} className="w-full bg-red-600">
+                        End Game
                       </Button>
-                    )}
-                    
-                    {currentGame.status === 'active' && (
-                      <>
-                        <Button onClick={pauseGame} className="w-full bg-yellow-600">
-                          <Pause size={16} className="mr-2" />
-                          Pause Game
-                        </Button>
-                        <Button onClick={endGame} className="w-full bg-red-600">
-                          End Game
-                        </Button>
-                      </>
-                    )}
-                    
-                    {currentGame.status === 'paused' && (
-                      <>
-                        <Button onClick={resumeGame} className="w-full bg-green-600">
-                          <Play size={16} className="mr-2" />
-                          Resume Game
-                        </Button>
-                        <Button onClick={endGame} className="w-full bg-red-600">
-                          End Game
-                        </Button>
-                      </>
                     )}
                   </div>
                 </div>
