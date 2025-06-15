@@ -4,11 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useGameData } from '@/hooks/useGameData';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { PrizeType } from '@/types/game';
-import { LogOut } from 'lucide-react';
+import { LogOut, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import TicketBookingGrid from '@/components/TicketBookingGrid';
 
@@ -21,12 +22,24 @@ const HostDashboard: React.FC = () => {
   const [selectedTicketSet, setSelectedTicketSet] = useState('demo-set-1');
   const [selectedPrizes, setSelectedPrizes] = useState<PrizeType[]>(['first_line', 'full_house']);
   const [isNumberCalling, setIsNumberCalling] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editDelay, setEditDelay] = useState(5);
+  const [editTicketSet, setEditTicketSet] = useState('demo-set-1');
+  const [editPrizes, setEditPrizes] = useState<PrizeType[]>(['first_line', 'full_house']);
 
   useEffect(() => {
     if (currentGame?.status === 'active' && !isNumberCalling) {
       startNumberCalling();
     }
   }, [currentGame?.status]);
+
+  useEffect(() => {
+    if (currentGame) {
+      setEditDelay(currentGame.number_calling_delay || 5);
+      setEditTicketSet(currentGame.ticket_set || 'demo-set-1');
+      setEditPrizes((currentGame.selected_prizes as PrizeType[]) || ['first_line', 'full_house']);
+    }
+  }, [currentGame]);
 
   const handleLogout = async () => {
     try {
@@ -55,6 +68,60 @@ const HostDashboard: React.FC = () => {
         ? prev.filter(p => p !== prize)
         : [...prev, prize]
     );
+  };
+
+  const handleEditPrizeToggle = (prize: PrizeType) => {
+    setEditPrizes(prev => 
+      prev.includes(prize) 
+        ? prev.filter(p => p !== prize)
+        : [...prev, prize]
+    );
+  };
+
+  const handleEditGame = () => {
+    if (currentGame) {
+      setIsEditDialogOpen(true);
+    }
+  };
+
+  const handleUpdateGame = async () => {
+    if (!currentGame) return;
+
+    if (editPrizes.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please select at least one prize",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('games')
+        .update({
+          number_calling_delay: editDelay,
+          ticket_set: editTicketSet,
+          selected_prizes: editPrizes as string[]
+        })
+        .eq('id', currentGame.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Game settings updated successfully!"
+      });
+
+      setIsEditDialogOpen(false);
+    } catch (error) {
+      console.error('Error updating game:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update game settings",
+        variant: "destructive"
+      });
+    }
   };
 
   const createNewGame = async () => {
@@ -392,7 +459,20 @@ const HostDashboard: React.FC = () => {
             </div>
 
             <div>
-              <h2 className="text-xl font-semibold mb-4">Game Status</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Game Status</h2>
+                {currentGame && (
+                  <Button 
+                    onClick={handleEditGame}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Edit size={16} />
+                    Edit Game
+                  </Button>
+                )}
+              </div>
               {currentGame ? (
                 <div className="space-y-2">
                   <p><strong>Status:</strong> {currentGame.status}</p>
@@ -420,22 +500,76 @@ const HostDashboard: React.FC = () => {
           />
         )}
 
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Bookings ({bookings.length})</h2>
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {bookings.length > 0 ? (
-              bookings.map(booking => (
-                <div key={booking.id} className="flex justify-between p-2 bg-gray-100 rounded">
-                  <span>Ticket #{booking.ticket_id}</span>
-                  <span>{booking.player_name}</span>
-                  <span>{booking.player_phone}</span>
+        {/* Edit Game Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Game Settings</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="editTicketSet">Ticket Set</Label>
+                <Select value={editTicketSet} onValueChange={setEditTicketSet}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select ticket set" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="demo-set-1">Demo Set 1 (100 tickets)</SelectItem>
+                    <SelectItem value="demo-set-2">Demo Set 2 (150 tickets)</SelectItem>
+                    <SelectItem value="demo-set-3">Demo Set 3 (200 tickets)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Prize Selection</Label>
+                <div className="mt-2 space-y-2 max-h-32 overflow-y-auto">
+                  {prizeOptions.map((prize) => (
+                    <div key={prize.value} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={`edit-${prize.value}`}
+                        checked={editPrizes.includes(prize.value)}
+                        onChange={() => handleEditPrizeToggle(prize.value)}
+                        className="rounded border-gray-300"
+                      />
+                      <Label htmlFor={`edit-${prize.value}`} className="text-sm">{prize.label}</Label>
+                    </div>
+                  ))}
                 </div>
-              ))
-            ) : (
-              <p className="text-gray-500">No bookings yet</p>
-            )}
-          </div>
-        </Card>
+              </div>
+
+              <div>
+                <Label htmlFor="editDelay">Number Calling Delay (seconds)</Label>
+                <Input
+                  id="editDelay"
+                  type="number"
+                  min="2"
+                  max="10"
+                  value={editDelay}
+                  onChange={(e) => setEditDelay(Number(e.target.value))}
+                  className="mt-1"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleUpdateGame}
+                  className="flex-1"
+                >
+                  Update Game
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsEditDialogOpen(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
