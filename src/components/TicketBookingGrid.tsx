@@ -37,33 +37,33 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
   // Get booked ticket IDs for quick lookup
   const bookedTicketIds = new Set(bookings.map(b => b.ticket_id));
 
-  // Create grid with exactly 10 tickets per column
-  const createTicketGrid = () => {
-    const grid: Ticket[][] = [];
+  // Create rows with exactly 10 tickets per row
+  const createTicketRows = () => {
+    const rows: Ticket[][] = [];
     const ticketMap = new Map(tickets.map(ticket => [ticket.ticket_number, ticket]));
     
-    // Calculate number of columns needed (each column has 10 tickets)
+    // Calculate number of rows needed (each row has 10 tickets)
     const maxTicketNumber = Math.max(...tickets.map(t => t.ticket_number), 0);
-    const numColumns = Math.ceil(maxTicketNumber / 10);
+    const numRows = Math.ceil(maxTicketNumber / 10);
     
-    for (let col = 0; col < numColumns; col++) {
-      const column: Ticket[] = [];
-      for (let row = 1; row <= 10; row++) {
-        const ticketNumber = col * 10 + row;
+    for (let row = 0; row < numRows; row++) {
+      const rowTickets: Ticket[] = [];
+      for (let col = 1; col <= 10; col++) {
+        const ticketNumber = row * 10 + col;
         const ticket = ticketMap.get(ticketNumber);
         if (ticket) {
-          column.push(ticket);
+          rowTickets.push(ticket);
         }
       }
-      if (column.length > 0) {
-        grid.push(column);
+      if (rowTickets.length > 0) {
+        rows.push(rowTickets);
       }
     }
     
-    return grid;
+    return rows;
   };
 
-  const ticketGrid = createTicketGrid();
+  const ticketRows = createTicketRows();
 
   const handleTicketClick = (ticketId: number) => {
     if (bookedTicketIds.has(ticketId)) return; // Can't select booked tickets
@@ -275,14 +275,14 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
         )}
       </div>
 
-      <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${ticketGrid.length}, 1fr)` }}>
-        {ticketGrid.map((column, columnIndex) => (
-          <div key={columnIndex} className="space-y-2">
+      <div className="space-y-3">
+        {ticketRows.map((row, rowIndex) => (
+          <div key={rowIndex} className="space-y-2">
             <h3 className="text-sm font-medium text-gray-600 text-center">
-              {columnIndex * 10 + 1}-{(columnIndex + 1) * 10}
+              Tickets {rowIndex * 10 + 1}-{(rowIndex + 1) * 10}
             </h3>
-            <div className="space-y-1">
-              {column.map(ticket => {
+            <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+              {row.map(ticket => {
                 const status = getTicketStatus(ticket.id);
                 const booking = bookings.find(b => b.ticket_id === ticket.id);
                 
@@ -291,13 +291,13 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
                     <div
                       onClick={() => handleTicketClick(ticket.id)}
                       className={`
-                        p-2 border rounded text-center text-sm transition-colors
+                        p-2 border rounded text-center text-sm transition-colors min-h-[48px] flex flex-col justify-center
                         ${getTicketStyles(status)}
                       `}
                     >
                       <div className="font-medium">{ticket.ticket_number}</div>
                       {booking && (
-                        <div className="text-xs text-gray-600 mt-1">
+                        <div className="text-xs text-gray-600 mt-1 truncate">
                           {booking.player_name}
                         </div>
                       )}
