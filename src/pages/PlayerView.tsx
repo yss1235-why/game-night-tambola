@@ -18,6 +18,7 @@ const PlayerView: React.FC = () => {
   // Debug log for real-time updates
   React.useEffect(() => {
     console.log('PlayerView - Game updated:', currentGame?.status, currentGame?.id);
+    console.log('PlayerView - Rendering NumberGrid?', currentGame?.status === 'active' || currentGame?.status === 'paused');
   }, [currentGame]);
 
   const handleSearchTicket = () => {
@@ -55,7 +56,7 @@ const PlayerView: React.FC = () => {
                     <div key={winner.id} className="p-3 bg-yellow-100 rounded-lg">
                       <span className="font-medium">{winner.prize_type.replace('_', ' ').toUpperCase()}</span>
                       {' - '}
-                      <span>Ticket #{winner.ticket_id}</span>
+                      <span>#{winner.ticket_id}</span>
                     </div>
                   ))}
                 </div>
@@ -69,6 +70,8 @@ const PlayerView: React.FC = () => {
     );
   }
 
+  console.log('Rendering PlayerView with game status:', currentGame.status);
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -78,18 +81,21 @@ const PlayerView: React.FC = () => {
 
         {/* Single Number Grid - only show during active or paused game */}
         {(currentGame.status === 'active' || currentGame.status === 'paused') && (
-          <NumberGrid 
-            calledNumbers={currentGame?.numbers_called || []}
-            currentNumber={currentGame?.current_number}
-          />
+          <div>
+            <p className="text-sm text-gray-500 mb-2">DEBUG: Rendering NumberGrid for status: {currentGame.status}</p>
+            <NumberGrid 
+              calledNumbers={currentGame?.numbers_called || []}
+              currentNumber={currentGame?.current_number}
+            />
+          </div>
         )}
 
         {/* Ticket Search */}
         <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Search Your Tickets</h2>
+          <h2 className="text-xl font-semibold mb-4">Search Your</h2>
           <div className="flex gap-4 items-end">
             <div className="flex-1">
-              <Label htmlFor="ticketSearch">Enter Ticket Number</Label>
+              <Label htmlFor="ticketSearch">Enter Number</Label>
               <Input
                 id="ticketSearch"
                 type="number"
@@ -101,13 +107,13 @@ const PlayerView: React.FC = () => {
               />
             </div>
             <Button onClick={handleSearchTicket} disabled={!searchTicketNumber}>
-              Search Ticket
+              Search
             </Button>
           </div>
           
           {viewedTickets.length > 0 && (
             <div className="mt-4">
-              <h3 className="text-lg font-medium mb-2">Searched Tickets:</h3>
+              <h3 className="text-lg font-medium mb-2">Searched:</h3>
               <div className="flex flex-wrap gap-2">
                 {viewedTickets.map(ticketNumber => (
                   <div key={ticketNumber} className="flex items-center gap-2 bg-blue-100 px-3 py-1 rounded">
