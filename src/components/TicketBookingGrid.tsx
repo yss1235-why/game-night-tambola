@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -79,20 +80,35 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
   const ticketRows = createTicketRows();
 
   const handleTicketClick = (ticketNumber: number) => {
+    console.log('Ticket clicked:', ticketNumber);
+    
     // Find the actual ticket ID for this ticket number
     const ticket = ticketMap.get(ticketNumber);
     if (!ticket) {
+      // For tickets that don't exist in the database yet, we need to create them first
+      console.log(`Ticket ${ticketNumber} does not exist, need to create it first`);
       toast({
-        title: "Error",
-        description: `Ticket ${ticketNumber} does not exist in the system`,
-        variant: "destructive"
+        title: "Info",
+        description: `Ticket ${ticketNumber} will be created when you book it`,
       });
+      
+      // Create a temporary ID for selection (negative to distinguish from real IDs)
+      const tempId = -ticketNumber;
+      setSelectedTickets(prev => 
+        prev.includes(tempId) 
+          ? prev.filter(id => id !== tempId)
+          : [...prev, tempId]
+      );
       return;
     }
 
     const ticketId = ticket.id;
-    if (bookedTicketIds.has(ticketId)) return; // Can't select booked tickets
+    if (bookedTicketIds.has(ticketId)) {
+      console.log('Ticket already booked:', ticketId);
+      return; // Can't select booked tickets
+    }
 
+    console.log('Selecting/deselecting ticket:', ticketId);
     setSelectedTickets(prev => 
       prev.includes(ticketId) 
         ? prev.filter(id => id !== ticketId)
@@ -166,23 +182,48 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Create bookings for all selected tickets
-      const bookingPromises = selectedTickets.map(ticketId => 
-        supabase
+      const bookingPromises = selectedTickets.map(async (ticketId) => {
+        let realTicketId = ticketId;
+        
+        // If it's a temporary ID (negative), we need to create the ticket first
+        if (ticketId < 0) {
+          const ticketNumber = -ticketId;
+          console.log('Creating ticket for number:', ticketNumber);
+          
+          // Create the ticket first
+          const { data: newTicket, error: ticketError } = await supabase
+            .from('tickets')
+            .insert({
+              ticket_number: ticketNumber,
+              numbers: [], // Add default empty array
+              row1: [], // Add default empty array
+              row2: [], // Add default empty array
+              row3: [] // Add default empty array
+            })
+            .select()
+            .single();
+            
+          if (ticketError) throw ticketError;
+          realTicketId = newTicket.id;
+        }
+        
+        // Create the booking
+        return supabase
           .from('bookings')
           .insert({
             game_id: currentGame.id,
-            ticket_id: ticketId,
+            ticket_id: realTicketId,
             player_name: playerName,
             player_phone: playerPhone || null
-          })
-      );
+          });
+      });
 
       const results = await Promise.all(bookingPromises);
       
       // Check if any booking failed
       const failures = results.filter(result => result.error);
       if (failures.length > 0) {
+        console.error('Booking failures:', failures);
         throw new Error('Some bookings failed');
       }
 
@@ -216,7 +257,12 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
 
   const getTicketStatus = (ticketNumber: number) => {
     const ticket = ticketMap.get(ticketNumber);
-    if (!ticket) return 'unavailable';
+    if (!ticket) {
+      // Check if it's selected as a temporary ticket
+      const tempId = -ticketNumber;
+      if (selectedTickets.includes(tempId)) return 'selected';
+      return 'available'; // Available for creation
+    }
     
     if (bookedTicketIds.has(ticket.id)) return 'booked';
     if (selectedTickets.includes(ticket.id)) return 'selected';
@@ -229,8 +275,6 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
         return 'bg-red-200 border-red-400 cursor-not-allowed opacity-60';
       case 'selected':
         return 'bg-blue-200 border-blue-400 cursor-pointer';
-      case 'unavailable':
-        return 'bg-gray-200 border-gray-300 cursor-not-allowed opacity-40';
       default:
         return 'bg-green-100 border-green-300 hover:bg-green-200 cursor-pointer';
     }
@@ -282,6 +326,7 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
                     </div>
                     <div className="text-sm text-gray-600">
                       Selected tickets: {selectedTickets.map(ticketId => {
+                        if (ticketId < 0) return -ticketId; // Temporary ticket
                         const ticket = tickets.find(t => t.id === ticketId);
                         return ticket?.ticket_number;
                       }).join(', ')}
@@ -309,50 +354,31 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
           )}
         </div>
 
-        {/* Booking Instructions */}
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="text-sm font-medium text-blue-800 mb-1">How to book tickets:</h3>
-          <p className="text-xs text-blue-700">
-            1. Click on green (available) tickets to select them • 2. Click "Book Selected Tickets" • 3. Enter player details • 4. Confirm booking
-          </p>
-        </div>
-
-        <div className="space-y-3">
+        <div className="space-y-1">
           {ticketRows.map((row, rowIndex) => (
-            <div key={rowIndex} className="space-y-2">
-              <h3 className="text-sm font-medium text-gray-600 text-center">
-                Tickets {rowIndex * 10 + 1}-{Math.min((rowIndex + 1) * 10, maxTickets)}
-              </h3>
-              <div className="grid grid-cols-10 gap-1">
-                {row.map(({ ticketNumber, ticket }) => {
-                  const status = getTicketStatus(ticketNumber);
-                  const booking = ticket ? bookings.find(b => b.ticket_id === ticket.id) : null;
-                  
-                  return (
-                    <div key={ticketNumber}>
-                      <div
-                        onClick={() => ticket && handleTicketClick(ticketNumber)}
-                        className={`
-                          aspect-square border rounded text-center text-xs transition-colors flex flex-col justify-center items-center p-1
-                          ${getTicketStyles(status)}
-                        `}
-                      >
-                        <div className="font-medium text-xs">{ticketNumber}</div>
-                        {booking && (
-                          <div className="text-[10px] text-gray-600 mt-0.5 truncate max-w-full">
-                            {booking.player_name.split(' ')[0]}
-                          </div>
-                        )}
-                        {!ticket && (
-                          <div className="text-[10px] text-gray-500 mt-0.5">
-                            N/A
-                          </div>
-                        )}
+            <div key={rowIndex} className="grid grid-cols-10 gap-1">
+              {row.map(({ ticketNumber, ticket }) => {
+                const status = getTicketStatus(ticketNumber);
+                const booking = ticket ? bookings.find(b => b.ticket_id === ticket.id) : null;
+                
+                return (
+                  <div
+                    key={ticketNumber}
+                    onClick={() => handleTicketClick(ticketNumber)}
+                    className={`
+                      aspect-square border rounded text-center text-xs transition-colors flex flex-col justify-center items-center p-1
+                      ${getTicketStyles(status)}
+                    `}
+                  >
+                    <div className="font-medium text-xs">{ticketNumber}</div>
+                    {booking && (
+                      <div className="text-[10px] text-gray-600 mt-0.5 truncate max-w-full">
+                        {booking.player_name.split(' ')[0]}
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
@@ -360,7 +386,7 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
         <div className="mt-4 text-xs text-gray-500 space-y-1">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
-            <span>Available (Click to select)</span>
+            <span>Available</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-blue-200 border border-blue-400 rounded"></div>
@@ -369,10 +395,6 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-red-200 border border-red-400 rounded"></div>
             <span>Booked</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-gray-200 border border-gray-300 rounded"></div>
-            <span>Not Available</span>
           </div>
         </div>
       </Card>
