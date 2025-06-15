@@ -31,19 +31,19 @@ const PlayerTicketView: React.FC<PlayerTicketViewProps> = ({
   };
 
   const getNumberStyle = (num: number | null) => {
-    if (!num) return 'bg-gray-100';
+    if (!num) return 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200';
     
     const isCalled = calledNumbers.includes(num);
     const isCurrent = currentNumber === num;
     
     if (isCurrent && isCalled) {
-      return 'bg-yellow-400 text-black font-bold border-2 border-yellow-600';
+      return 'bg-gradient-to-br from-yellow-400 to-yellow-500 text-black font-bold border-2 border-yellow-600 shadow-lg transform scale-105 animate-pulse';
     }
     if (isCalled) {
-      return 'bg-green-500 text-white font-semibold';
+      return 'bg-gradient-to-br from-green-500 to-green-600 text-white font-semibold border-green-700 shadow-sm';
     }
     
-    return 'bg-white';
+    return 'bg-gradient-to-br from-white to-gray-50 border-gray-300 hover:shadow-sm transition-shadow';
   };
 
   const renderTicketGrid = (ticket: Ticket, ticketBookings: Booking[]) => {
@@ -70,16 +70,16 @@ const PlayerTicketView: React.FC<PlayerTicketViewProps> = ({
       });
 
       return (
-        <div key={rowIndex} className="grid grid-cols-9 gap-1">
+        <div key={rowIndex} className="grid grid-cols-9 gap-2">
           {fullRow.map((num, colIndex) => (
             <div
               key={colIndex}
               className={`
-                h-10 w-10 border border-gray-300 flex items-center justify-center text-sm font-medium transition-colors
+                h-12 w-12 border-2 rounded-lg flex items-center justify-center text-sm font-medium transition-all duration-200
                 ${getNumberStyle(num)}
               `}
             >
-              {num || ''}
+              {num && <span className="text-center leading-none">{num}</span>}
             </div>
           ))}
         </div>
@@ -87,38 +87,39 @@ const PlayerTicketView: React.FC<PlayerTicketViewProps> = ({
     };
 
     return (
-      <div className="space-y-2">
-        <div className="space-y-1">
+      <div className="space-y-3">
+        <div className="space-y-2">
           {[ticket.row1, ticket.row2, ticket.row3].map((row, index) => 
             renderRow(row, index)
           )}
         </div>
         
-        {/* Color Legend */}
-        <div className="text-xs text-gray-600 space-y-1">
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 bg-white border border-gray-300"></div>
+        {/* Enhanced Color Legend */}
+        <div className="bg-gray-50 rounded-lg p-3">
+          <div className="text-xs font-medium text-gray-700 mb-2">Legend:</div>
+          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gradient-to-br from-white to-gray-50 border border-gray-300 rounded"></div>
               <span>Not Called</span>
             </div>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 bg-green-500"></div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gradient-to-br from-green-500 to-green-600 rounded"></div>
               <span>Called</span>
             </div>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 bg-yellow-400 border-2 border-yellow-600"></div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gradient-to-br from-yellow-400 to-yellow-500 border-2 border-yellow-600 rounded"></div>
               <span>Current</span>
             </div>
           </div>
         </div>
         
         {ticketBookings.length > 0 && (
-          <div className="mt-2 text-sm text-gray-600">
-            <strong>Booked by:</strong>
+          <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+            <div className="text-sm font-medium text-blue-800 mb-1">Booked by:</div>
             {ticketBookings.map((booking, index) => (
-              <div key={booking.id}>
-                {booking.player_name}
-                {booking.player_phone && ` (${booking.player_phone})`}
+              <div key={booking.id} className="text-sm text-blue-700">
+                <span className="font-medium">{booking.player_name}</span>
+                {booking.player_phone && <span className="text-blue-600"> ({booking.player_phone})</span>}
               </div>
             ))}
           </div>
@@ -128,39 +129,51 @@ const PlayerTicketView: React.FC<PlayerTicketViewProps> = ({
   };
 
   return (
-    <Card className="p-6">
-      <h2 className="text-xl font-semibold mb-4">Your Tickets</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <Card className="p-6 bg-gradient-to-br from-white to-gray-50 shadow-lg rounded-xl border-2">
+      <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+        🎫 Your Tickets
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {viewedTickets.map(ticketNumber => {
           const ticket = getTicketByNumber(ticketNumber);
           const ticketBookings = ticket ? getBookingsForTicket(ticket.id) : [];
           
           return (
-            <Card key={ticketNumber} className="p-4 relative">
+            <Card key={ticketNumber} className="p-5 relative bg-white shadow-md hover:shadow-lg transition-shadow rounded-xl border-2">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => onRemoveTicket(ticketNumber)}
-                className="absolute top-2 right-2 h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                className="absolute top-2 right-2 h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full"
               >
                 <X size={16} />
               </Button>
               
-              <div className="mb-3">
-                <h3 className="font-bold text-lg">Ticket #{ticketNumber}</h3>
+              <div className="mb-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+                    #{ticketNumber}
+                  </div>
+                  <h3 className="font-bold text-lg text-gray-800">Ticket</h3>
+                </div>
                 {!ticket && (
-                  <p className="text-sm text-red-500">Ticket not found</p>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-2">
+                    <p className="text-sm text-red-600 font-medium">Ticket not found</p>
+                  </div>
                 )}
                 {ticket && ticketBookings.length === 0 && (
-                  <p className="text-sm text-orange-500">Not booked</p>
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-2">
+                    <p className="text-sm text-orange-600 font-medium">Not booked</p>
+                  </div>
                 )}
               </div>
               
               {ticket ? (
                 renderTicketGrid(ticket, ticketBookings)
               ) : (
-                <div className="text-center text-gray-500 py-8">
-                  <p>Ticket #{ticketNumber} not available</p>
+                <div className="text-center text-gray-500 py-12 bg-gray-50 rounded-lg">
+                  <div className="text-4xl mb-2">🎫</div>
+                  <p className="font-medium">Ticket #{ticketNumber} not available</p>
                 </div>
               )}
             </Card>
