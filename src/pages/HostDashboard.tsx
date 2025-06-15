@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,53 @@ const HostDashboard: React.FC = () => {
   const [editPrizes, setEditPrizes] = useState<PrizeType[]>(['first_line', 'full_house']);
   const [editHostPhone, setEditHostPhone] = useState('');
   const [editMaxTickets, setEditMaxTickets] = useState(100);
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  // Initialize audio context
+  useEffect(() => {
+    if ('AudioContext' in window || 'webkitAudioContext' in window) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
+  }, []);
+
+  // Function to play number announcement
+  const playNumberAudio = (number: number) => {
+    if (!audioContextRef.current) return;
+
+    // Create a simple beep followed by speech synthesis
+    const context = audioContextRef.current;
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+
+    gainNode.gain.setValueAtTime(0, context.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.3, context.currentTime + 0.01);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.3);
+
+    oscillator.start(context.currentTime);
+    oscillator.stop(context.currentTime + 0.3);
+
+    // Use speech synthesis for number announcement
+    setTimeout(() => {
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(`Number ${number}`);
+        utterance.rate = 0.8;
+        utterance.volume = 0.8;
+        window.speechSynthesis.speak(utterance);
+      }
+    }, 400);
+  };
 
   useEffect(() => {
     console.log('Game status changed:', currentGame?.status, 'isNumberCalling:', isNumberCalling);
@@ -397,6 +444,9 @@ const HostDashboard: React.FC = () => {
           .eq('id', currentGame.id);
 
         if (error) throw error;
+
+        // Play audio for the called number
+        playNumberAudio(nextNumber);
 
         // Schedule next number
         setTimeout(callNextNumber, (latestGame.number_calling_delay || 5) * 1000);
