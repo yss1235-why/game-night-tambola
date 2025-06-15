@@ -35,7 +35,7 @@ const CreateHostForm: React.FC<CreateHostFormProps> = ({ onHostCreated }) => {
     try {
       console.log('Creating host via edge function:', formData.email);
       
-      // Use the create-admin edge function instead of direct auth calls
+      // Use the create-admin edge function
       const { data, error } = await supabase.functions.invoke('create-admin', {
         body: {
           email: formData.email,
@@ -45,14 +45,35 @@ const CreateHostForm: React.FC<CreateHostFormProps> = ({ onHostCreated }) => {
         }
       });
 
+      console.log('Edge function response:', { data, error });
+
       if (error) {
         console.error('Edge function error:', error);
-        throw error;
+        
+        // If edge function fails, show more detailed error
+        let errorMessage = 'Failed to create host';
+        if (error.message) {
+          errorMessage = error.message;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        }
+        
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive"
+        });
+        return;
       }
 
-      if (data.error) {
+      if (data?.error) {
         console.error('Edge function returned error:', data.error);
-        throw new Error(data.error);
+        toast({
+          title: "Error",
+          description: data.error,
+          variant: "destructive"
+        });
+        return;
       }
 
       console.log('Host created successfully:', data);
@@ -66,9 +87,15 @@ const CreateHostForm: React.FC<CreateHostFormProps> = ({ onHostCreated }) => {
       onHostCreated();
     } catch (error) {
       console.error('Error creating host:', error);
+      
+      let errorMessage = 'Failed to create host';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to create host",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
