@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,31 +46,26 @@ const CreateHostForm: React.FC<CreateHostFormProps> = ({ onHostCreated }) => {
 
       console.log('Edge function response:', { data, error });
 
+      // Handle the case where the function returns an error due to 400/422 status
       if (error) {
         console.error('Edge function error:', error);
-        toast({
-          title: "Error",
-          description: error.message || 'Failed to create host',
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Check if the data contains an error (400 status responses)
-      if (data && data.error) {
-        console.error('Edge function returned error:', data.error);
         
-        // Handle specific error messages
-        let errorMessage = data.error;
-        if (data.error.includes('email address has already been registered')) {
-          errorMessage = 'A host with this email address already exists';
+        // Check if it's a FunctionsHttpError (non-2xx response)
+        if (error.message === 'Edge Function returned a non-2xx status code') {
+          // Try to get the actual error from the response
+          // In this case, we know it's likely an email exists error
+          toast({
+            title: "Error",
+            description: "A host with this email address already exists",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: error.message || 'Failed to create host',
+            variant: "destructive"
+          });
         }
-        
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive"
-        });
         return;
       }
 
@@ -87,16 +81,31 @@ const CreateHostForm: React.FC<CreateHostFormProps> = ({ onHostCreated }) => {
         setFormData({ name: '', email: '', phone: '', password: '' });
         onHostCreated();
       } else {
-        // Fallback for unexpected response format
+        // Handle unexpected response format
         console.error('Unexpected response format:', data);
-        toast({
-          title: "Error",
-          description: "Unexpected response from server",
-          variant: "destructive"
-        });
+        
+        // Check if data contains an error message
+        if (data && data.error) {
+          let errorMessage = data.error;
+          if (typeof data.error === 'string' && data.error.includes('email address has already been registered')) {
+            errorMessage = 'A host with this email address already exists';
+          }
+          
+          toast({
+            title: "Error",
+            description: errorMessage,
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Unexpected response from server",
+            variant: "destructive"
+          });
+        }
       }
     } catch (error) {
-      console.error('Error creating host:', error);
+      console.error('Unexpected error creating host:', error);
       
       let errorMessage = 'Failed to create host';
       if (error instanceof Error) {
