@@ -15,12 +15,6 @@ const PlayerView: React.FC = () => {
   const [searchTicketNumber, setSearchTicketNumber] = useState('');
   const [viewedTickets, setViewedTickets] = useState<number[]>([]);
 
-  // Debug log for real-time updates
-  React.useEffect(() => {
-    console.log('PlayerView - Game updated:', currentGame?.status, currentGame?.id);
-    console.log('PlayerView - Rendering NumberGrid?', currentGame?.status === 'active' || currentGame?.status === 'paused');
-  }, [currentGame]);
-
   const handleSearchTicket = () => {
     const ticketNumber = parseInt(searchTicketNumber);
     if (ticketNumber && !viewedTickets.includes(ticketNumber)) {
@@ -70,8 +64,6 @@ const PlayerView: React.FC = () => {
     );
   }
 
-  console.log('Rendering PlayerView with game status:', currentGame.status);
-
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -81,13 +73,10 @@ const PlayerView: React.FC = () => {
 
         {/* Single Number Grid - only show during active or paused game */}
         {(currentGame.status === 'active' || currentGame.status === 'paused') && (
-          <div>
-            <p className="text-sm text-gray-500 mb-2">DEBUG: Rendering NumberGrid for status: {currentGame.status}</p>
-            <NumberGrid 
-              calledNumbers={currentGame?.numbers_called || []}
-              currentNumber={currentGame?.current_number}
-            />
-          </div>
+          <NumberGrid 
+            calledNumbers={currentGame?.numbers_called || []}
+            currentNumber={currentGame?.current_number}
+          />
         )}
 
         {/* Ticket Search */}
