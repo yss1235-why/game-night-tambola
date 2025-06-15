@@ -75,7 +75,7 @@ const PlayerTicketView: React.FC<PlayerTicketViewProps> = ({
             <div
               key={colIndex}
               className={`
-                h-8 w-8 border-2 rounded-md flex items-center justify-center text-xs font-medium transition-all duration-200
+                h-10 w-10 border-2 rounded-md flex items-center justify-center text-xs font-medium transition-all duration-200
                 ${getNumberStyle(num)}
               `}
             >
