@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,18 +52,32 @@ const HostDashboard: React.FC = () => {
     }
 
     try {
-      // Create a temporary UUID for host_id until proper authentication is implemented
-      const tempHostId = crypto.randomUUID();
-      
+      // First, create a host record
+      const { data: hostData, error: hostError } = await supabase
+        .from('hosts')
+        .insert([{
+          email: 'temp@example.com', // Temporary email until proper auth
+          name: 'Host', // Temporary name
+          phone: hostPhone
+        }])
+        .select()
+        .single();
+
+      if (hostError) {
+        console.error('Error creating host:', hostError);
+        throw hostError;
+      }
+
+      // Then create the game with the host_id
       const { data, error } = await supabase
         .from('games')
         .insert([{
-          host_id: tempHostId,
+          host_id: hostData.id,
           status: 'waiting',
           number_calling_delay: numberCallingDelay,
           host_phone: hostPhone,
           ticket_set: selectedTicketSet,
-          selected_prizes: selectedPrizes as string[] // Convert PrizeType[] to string[] for database
+          selected_prizes: selectedPrizes as string[]
         }])
         .select()
         .single();
