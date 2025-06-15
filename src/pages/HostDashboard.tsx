@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { PrizeType } from '@/types/game';
 import { LogOut, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
 import TicketBookingGrid from '@/components/TicketBookingGrid';
 import NumberGrid from '@/components/NumberGrid';
 import WinnersList from '@/components/WinnersList';
