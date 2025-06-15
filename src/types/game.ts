@@ -1,4 +1,3 @@
-
 export type GameStatus = 'waiting' | 'active' | 'paused' | 'ended';
 export type PrizeType = 'first_line' | 'second_line' | 'third_line' | 'full_house' | 'early_five' | 'corners';
 
@@ -12,6 +11,7 @@ export interface Game {
   host_phone?: string;
   ticket_set?: string;
   selected_prizes?: string[]; // Changed from PrizeType[] to string[] to match database
+  max_tickets?: number; // Added max_tickets field
   started_at: string | null;
   ended_at: string | null;
   created_at: string;

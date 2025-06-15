@@ -91,6 +91,7 @@ export type Database = {
           host_id: string
           host_phone: string | null
           id: string
+          max_tickets: number | null
           number_calling_delay: number | null
           numbers_called: number[] | null
           selected_prizes: string[] | null
@@ -106,6 +107,7 @@ export type Database = {
           host_id: string
           host_phone?: string | null
           id?: string
+          max_tickets?: number | null
           number_calling_delay?: number | null
           numbers_called?: number[] | null
           selected_prizes?: string[] | null
@@ -121,6 +123,7 @@ export type Database = {
           host_id?: string
           host_phone?: string | null
           id?: string
+          max_tickets?: number | null
           number_calling_delay?: number | null
           numbers_called?: number[] | null
           selected_prizes?: string[] | null
