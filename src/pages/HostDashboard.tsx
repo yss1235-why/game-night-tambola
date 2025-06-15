@@ -9,10 +9,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { PrizeType } from '@/types/game';
 import { LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const HostDashboard: React.FC = () => {
   const { currentGame, bookings } = useGameData();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [numberCallingDelay, setNumberCallingDelay] = useState(5);
   const [hostPhone, setHostPhone] = useState('');
   const [selectedTicketSet, setSelectedTicketSet] = useState('demo-set-1');
@@ -34,6 +36,9 @@ const HostDashboard: React.FC = () => {
         title: "Success",
         description: "Logged out successfully!"
       });
+      
+      // Redirect to landing page
+      navigate('/');
     } catch (error) {
       console.error('Error logging out:', error);
       toast({
