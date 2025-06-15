@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -629,6 +629,70 @@ const HostDashboard: React.FC = () => {
     };
 
     callNextNumber();
+  };
+
+  const handleWinnerDetection = async (gameId: string, calledNumbers: number[], currentTickets: Ticket[], currentBookings: Booking[], maxTickets: number) => {
+    try {
+      console.log('Starting winner detection...', { 
+        gameId, 
+        calledNumbersCount: calledNumbers.length, 
+        ticketsCount: currentTickets.length, 
+        bookingsCount: currentBookings.length 
+      });
+
+      // Get existing winners for this game
+      const { data: existingWinners, error: winnersError } = await supabase
+        .from('winners')
+        .select('prize_type, ticket_id')
+        .eq('game_id', gameId);
+
+      if (winnersError) {
+        console.error('Error fetching existing winners:', winnersError);
+        return;
+      }
+
+      console.log('Existing winners:', existingWinners);
+
+      // Detect new winners
+      const newWinners = detectWinners(
+        currentTickets,
+        currentBookings,
+        calledNumbers,
+        existingWinners || [],
+        maxTickets
+      );
+
+      console.log('New winners detected:', newWinners);
+
+      // Insert new winners one by one with error handling
+      for (const winner of newWinners) {
+        try {
+          const { error: insertError } = await supabase
+            .from('winners')
+            .insert({
+              game_id: gameId,
+              ticket_id: winner.ticketId,
+              prize_type: winner.prizeType
+            });
+
+          if (insertError) {
+            // Check if it's a duplicate key error (which we can ignore)
+            if (insertError.code === '23505') {
+              console.log(`Duplicate winner ignored: ${winner.prizeType} for ticket ${winner.ticketNumber}`);
+            } else {
+              console.error(`Error inserting winner ${winner.prizeType}:`, insertError);
+            }
+          } else {
+            console.log(`Successfully added winner: ${winner.prizeType} for ticket ${winner.ticketNumber}`);
+          }
+        } catch (error) {
+          console.error(`Failed to insert winner ${winner.prizeType}:`, error);
+        }
+      }
+
+    } catch (error) {
+      console.error('Error in winner detection:', error);
+    }
   };
 
   const handleBookingComplete = () => {
