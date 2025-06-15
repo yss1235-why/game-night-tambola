@@ -81,7 +81,48 @@ export const checkFullHouse = (ticket: Ticket, calledNumbers: number[]): boolean
 };
 
 /**
- * Prize types that should only have one winner per game
+ * Get the winning number for a specific pattern - the last number that completed the pattern
+ */
+const getWinningNumber = (ticket: Ticket, prizeType: PrizeType, calledNumbers: number[]): number | null => {
+  let requiredNumbers: number[] = [];
+  
+  switch (prizeType) {
+    case 'quick_five':
+      // For Quick 5, get the first 5 numbers that were called
+      requiredNumbers = ticket.numbers.filter(num => calledNumbers.includes(num)).slice(0, 5);
+      break;
+    case 'corners':
+      requiredNumbers = [ticket.row1[0], ticket.row1[4], ticket.row3[0], ticket.row3[4]];
+      break;
+    case 'star_corners':
+      requiredNumbers = [ticket.row1[0], ticket.row1[4], ticket.row2[2], ticket.row3[0], ticket.row3[4]];
+      break;
+    case 'top_line':
+      requiredNumbers = ticket.row1;
+      break;
+    case 'middle_line':
+      requiredNumbers = ticket.row2;
+      break;
+    case 'bottom_line':
+      requiredNumbers = ticket.row3;
+      break;
+    case 'full_house':
+    case 'second_full_house':
+      requiredNumbers = ticket.numbers;
+      break;
+    default:
+      return null;
+  }
+  
+  // Find the last called number that was needed to complete this pattern
+  const requiredCallIndices = requiredNumbers.map(num => calledNumbers.indexOf(num));
+  const lastRequiredIndex = Math.max(...requiredCallIndices);
+  
+  return lastRequiredIndex >= 0 ? calledNumbers[lastRequiredIndex] : null;
+};
+
+/**
+ * Prize types that should only have one winner per game (for sheet patterns)
  */
 const SINGLE_WINNER_PRIZES = ['half_sheet', 'full_sheet'];
 
@@ -103,25 +144,22 @@ export const detectWinners = (
     ticketToBooking.set(booking.ticket_id, booking);
   });
 
-  // Get existing winners organized by prize type
-  const existingWinnersByPrize = new Map<string, { prize_type: string; ticket_id: number }[]>();
+  // Get existing winners organized by prize type and ticket
+  const existingWinnersByPrizeAndTicket = new Set<string>();
   existingWinners.forEach(winner => {
-    const existing = existingWinnersByPrize.get(winner.prize_type) || [];
-    existing.push(winner);
-    existingWinnersByPrize.set(winner.prize_type, existing);
+    existingWinnersByPrizeAndTicket.add(`${winner.prize_type}-${winner.ticket_id}`);
   });
 
-  // Get existing winner ticket IDs for specific prize type
-  const getExistingWinnerTicketIds = (prizeType: string): Set<number> => {
-    const existing = existingWinnersByPrize.get(prizeType) || [];
-    return new Set(existing.map(w => w.ticket_id));
-  };
+  // Get existing winner ticket IDs for sheet prizes (these should still be unique)
+  const existingSheetWinners = new Set<string>();
+  existingWinners.forEach(winner => {
+    if (SINGLE_WINNER_PRIZES.includes(winner.prize_type)) {
+      existingSheetWinners.add(winner.prize_type);
+    }
+  });
 
-  // Check if a prize type already has a winner (for single-winner prizes)
-  const hasSingleWinnerAlready = (prizeType: string): boolean => {
-    if (!SINGLE_WINNER_PRIZES.includes(prizeType)) return false;
-    return existingWinnersByPrize.has(prizeType);
-  };
+  // Group potential winners by prize type and winning number
+  const potentialWinnersByPrizeAndNumber = new Map<string, WinnerDetectionResult[]>();
 
   // Check individual ticket patterns
   tickets.forEach(ticket => {
@@ -139,29 +177,40 @@ export const detectWinners = (
     ];
 
     checks.forEach(({ prizeType, checkFn }) => {
-      const existingTicketIds = getExistingWinnerTicketIds(prizeType);
+      const winnerKey = `${prizeType}-${ticket.id}`;
       
       // Skip if this ticket already won this prize
-      if (existingTicketIds.has(ticket.id)) return;
-      
-      // For single-winner prizes, skip if someone already won
-      if (hasSingleWinnerAlready(prizeType)) return;
+      if (existingWinnersByPrizeAndTicket.has(winnerKey)) return;
       
       if (checkFn()) {
-        console.log(`Winner detected: ${prizeType} for ticket ${ticket.ticket_number}`);
-        winners.push({
-          prizeType,
-          ticketId: ticket.id,
-          ticketNumber: ticket.ticket_number,
-          playerName: booking.player_name,
-          playerPhone: booking.player_phone || undefined
-        });
+        const winningNumber = getWinningNumber(ticket, prizeType, calledNumbers);
+        if (winningNumber !== null) {
+          const groupKey = `${prizeType}-${winningNumber}`;
+          
+          if (!potentialWinnersByPrizeAndNumber.has(groupKey)) {
+            potentialWinnersByPrizeAndNumber.set(groupKey, []);
+          }
+          
+          potentialWinnersByPrizeAndNumber.get(groupKey)!.push({
+            prizeType,
+            ticketId: ticket.id,
+            ticketNumber: ticket.ticket_number,
+            playerName: booking.player_name,
+            playerPhone: booking.player_phone || undefined
+          });
+        }
       }
     });
   });
 
-  // Check sheet patterns (Half Sheet and Full Sheet) - only if not already won
-  if (!hasSingleWinnerAlready('half_sheet')) {
+  // Add all winners who completed patterns on the same number
+  potentialWinnersByPrizeAndNumber.forEach((groupWinners, groupKey) => {
+    console.log(`Winners for ${groupKey}:`, groupWinners.map(w => w.ticketNumber));
+    winners.push(...groupWinners);
+  });
+
+  // Check sheet patterns (Half Sheet and Full Sheet) - these remain single winners
+  if (!existingSheetWinners.has('half_sheet')) {
     const halfSheetWinner = getWinningHalfSheet(bookings, tickets, calledNumbers, maxTickets);
     if (halfSheetWinner) {
       const firstTicket = tickets.find(t => t.ticket_number === halfSheetWinner.tickets[0]);
@@ -178,7 +227,7 @@ export const detectWinners = (
     }
   }
 
-  if (!hasSingleWinnerAlready('full_sheet')) {
+  if (!existingSheetWinners.has('full_sheet')) {
     const fullSheetWinner = getWinningFullSheet(bookings, tickets, calledNumbers, maxTickets);
     if (fullSheetWinner) {
       const firstTicket = tickets.find(t => t.ticket_number === fullSheetWinner.tickets[0]);
@@ -196,9 +245,10 @@ export const detectWinners = (
   }
 
   // Handle second full house - check if there are already full house winners
-  const fullHouseWinners = existingWinnersByPrize.get('full_house') || [];
+  const fullHouseWinners = existingWinners.filter(w => w.prize_type === 'full_house');
   if (fullHouseWinners.length > 0) {
-    const existingSecondFullHouseWinners = existingWinnersByPrize.get('second_full_house') || [];
+    const existingSecondFullHouseWinners = existingWinners.filter(w => w.prize_type === 'second_full_house');
+    const potentialSecondFullHouseWinners = new Map<number, WinnerDetectionResult[]>();
     
     // Check for second full house (exclude existing full house and second full house winners)
     tickets.forEach(ticket => {
@@ -211,15 +261,28 @@ export const detectWinners = (
       if (!isAlreadyFullHouseWinner && 
           !isAlreadySecondFullHouseWinner && 
           checkFullHouse(ticket, calledNumbers)) {
-        console.log(`Second full house winner detected: ticket ${ticket.ticket_number}`);
-        winners.push({
-          prizeType: 'second_full_house',
-          ticketId: ticket.id,
-          ticketNumber: ticket.ticket_number,
-          playerName: booking.player_name,
-          playerPhone: booking.player_phone || undefined
-        });
+        
+        const winningNumber = getWinningNumber(ticket, 'second_full_house', calledNumbers);
+        if (winningNumber !== null) {
+          if (!potentialSecondFullHouseWinners.has(winningNumber)) {
+            potentialSecondFullHouseWinners.set(winningNumber, []);
+          }
+          
+          potentialSecondFullHouseWinners.get(winningNumber)!.push({
+            prizeType: 'second_full_house',
+            ticketId: ticket.id,
+            ticketNumber: ticket.ticket_number,
+            playerName: booking.player_name,
+            playerPhone: booking.player_phone || undefined
+          });
+        }
       }
+    });
+
+    // Add all second full house winners who completed on the same number
+    potentialSecondFullHouseWinners.forEach((groupWinners, winningNumber) => {
+      console.log(`Second full house winners for number ${winningNumber}:`, groupWinners.map(w => w.ticketNumber));
+      winners.push(...groupWinners);
     });
   }
 
