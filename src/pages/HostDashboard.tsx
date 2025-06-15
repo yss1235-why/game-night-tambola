@@ -8,6 +8,7 @@ import { useGameData } from '@/hooks/useGameData';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { PrizeType } from '@/types/game';
+import { LogOut } from 'lucide-react';
 
 const HostDashboard: React.FC = () => {
   const { currentGame, bookings } = useGameData();
@@ -23,6 +24,25 @@ const HostDashboard: React.FC = () => {
       startNumberCalling();
     }
   }, [currentGame?.status]);
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "Logged out successfully!"
+      });
+    } catch (error) {
+      console.error('Error logging out:', error);
+      toast({
+        title: "Error",
+        description: "Failed to log out",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handlePrizeToggle = (prize: PrizeType) => {
     setSelectedPrizes(prev => 
@@ -254,7 +274,17 @@ const HostDashboard: React.FC = () => {
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-4xl mx-auto space-y-6">
         <Card className="p-6">
-          <h1 className="text-3xl font-bold mb-6">Host Dashboard</h1>
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold">Host Dashboard</h1>
+            <Button 
+              onClick={handleLogout}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <LogOut size={16} />
+              Logout
+            </Button>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
