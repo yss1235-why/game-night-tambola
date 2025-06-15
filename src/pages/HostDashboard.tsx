@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useGameData } from '@/hooks/useGameData';
 import { supabase } from '@/integrations/supabase/client';
 import { PrizeType } from '@/types/game';
-import { LogOut, Edit } from 'lucide-react';
+import { LogOut, Edit, Pause, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import TicketBookingGrid from '@/components/TicketBookingGrid';
@@ -283,6 +284,26 @@ const HostDashboard: React.FC = () => {
     }
   };
 
+  const resumeGame = async () => {
+    if (!currentGame) return;
+
+    try {
+      const { error } = await supabase
+        .from('games')
+        .update({ status: 'active' })
+        .eq('id', currentGame.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Game resumed!"
+      });
+    } catch (error) {
+      console.error('Error resuming game:', error);
+    }
+  };
+
   const endGame = async () => {
     if (!currentGame) return;
 
@@ -386,6 +407,7 @@ const HostDashboard: React.FC = () => {
   ];
 
   const showGameSetup = !currentGame || currentGame.status === 'ended';
+  const showTicketBooking = currentGame && currentGame.status === 'waiting';
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -515,6 +537,7 @@ const HostDashboard: React.FC = () => {
                   <div className="space-y-2 mt-4">
                     {currentGame.status === 'waiting' && (
                       <Button onClick={startGame} className="w-full bg-green-600">
+                        <Play size={16} className="mr-2" />
                         Start Game
                       </Button>
                     )}
@@ -522,6 +545,7 @@ const HostDashboard: React.FC = () => {
                     {currentGame.status === 'active' && (
                       <>
                         <Button onClick={pauseGame} className="w-full bg-yellow-600">
+                          <Pause size={16} className="mr-2" />
                           Pause Game
                         </Button>
                         <Button onClick={endGame} className="w-full bg-red-600">
@@ -531,9 +555,15 @@ const HostDashboard: React.FC = () => {
                     )}
                     
                     {currentGame.status === 'paused' && (
-                      <Button onClick={startGame} className="w-full bg-green-600">
-                        Resume Game
-                      </Button>
+                      <>
+                        <Button onClick={resumeGame} className="w-full bg-green-600">
+                          <Play size={16} className="mr-2" />
+                          Resume Game
+                        </Button>
+                        <Button onClick={endGame} className="w-full bg-red-600">
+                          End Game
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -544,25 +574,28 @@ const HostDashboard: React.FC = () => {
           </div>
         </Card>
 
-        {/* Number Grid */}
-        {currentGame && (
+        {/* Number Grid - Show when game is active or paused */}
+        {currentGame && (currentGame.status === 'active' || currentGame.status === 'paused') && (
           <NumberGrid 
             calledNumbers={currentGame.numbers_called || []}
             currentNumber={currentGame.current_number}
           />
         )}
 
-        {/* Winners List */}
+        {/* Winners Section - Show when there are winners */}
         {currentGame && winners.length > 0 && (
-          <WinnersList 
-            winners={winners}
-            tickets={tickets}
-            bookings={bookings}
-          />
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-4">Game Winners</h2>
+            <WinnersList 
+              winners={winners}
+              tickets={tickets}
+              bookings={bookings}
+            />
+          </Card>
         )}
 
-        {/* Ticket Booking Section */}
-        {currentGame && (
+        {/* Ticket Booking Section - Only show when game is waiting */}
+        {showTicketBooking && (
           <TicketBookingGrid
             tickets={tickets}
             bookings={bookings}
@@ -672,3 +705,4 @@ const HostDashboard: React.FC = () => {
 };
 
 export default HostDashboard;
+
