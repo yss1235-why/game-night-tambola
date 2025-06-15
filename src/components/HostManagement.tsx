@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +15,7 @@ interface Host {
   phone: string | null;
   subscription_expires_at: string | null;
   is_active: boolean;
+  created_at: string;
 }
 
 const HostManagement: React.FC = () => {
@@ -23,6 +23,7 @@ const HostManagement: React.FC = () => {
   const [editingHost, setEditingHost] = useState<Host | null>(null);
   const [extensionDays, setExtensionDays] = useState('30');
   const [newPassword, setNewPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchHosts();
@@ -30,20 +31,30 @@ const HostManagement: React.FC = () => {
 
   const fetchHosts = async () => {
     try {
+      setIsLoading(true);
+      console.log('HostManagement: Fetching hosts from database...');
+      
       const { data, error } = await supabase
         .from('hosts')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('HostManagement: Error fetching hosts:', error);
+        throw error;
+      }
+      
+      console.log('HostManagement: Fetched hosts:', data);
       setHosts(data || []);
     } catch (error) {
-      console.error('Error fetching hosts:', error);
+      console.error('HostManagement: Error fetching hosts:', error);
       toast({
         title: "Error",
         description: "Failed to fetch hosts",
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -137,9 +148,24 @@ const HostManagement: React.FC = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <Card className="p-6">
+        <div className="text-center">Loading hosts...</div>
+      </Card>
+    );
+  }
+
   return (
     <Card className="p-6">
       <h3 className="text-lg font-semibold mb-4">Host Management</h3>
+      
+      {/* Debug info */}
+      <div className="mb-4 p-3 bg-green-50 rounded-lg">
+        <p className="text-sm text-green-800">
+          <strong>Database Connection:</strong> Successfully loaded {hosts.length} hosts from database
+        </p>
+      </div>
       
       <div className="space-y-4 mb-6">
         <div className="flex gap-4 items-end">
@@ -156,68 +182,82 @@ const HostManagement: React.FC = () => {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Subscription Expires</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {hosts.map((host) => (
-              <TableRow key={host.id}>
-                <TableCell>{host.name}</TableCell>
-                <TableCell>{host.email}</TableCell>
-                <TableCell>{host.phone || 'N/A'}</TableCell>
-                <TableCell>
-                  {host.subscription_expires_at 
-                    ? new Date(host.subscription_expires_at).toLocaleDateString()
-                    : 'No expiry'
-                  }
-                </TableCell>
-                <TableCell>
-                  <span className={`px-2 py-1 rounded text-xs ${
-                    host.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {host.is_active ? 'Active' : 'Inactive'}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => extendSubscription(host.id)}
-                    >
-                      <Calendar size={16} />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setEditingHost(host)}
-                    >
-                      <Edit size={16} />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => deleteHost(host.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-                </TableCell>
+      {hosts.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-gray-500">No hosts found in database</p>
+          <p className="text-sm text-gray-400 mt-2">Create a new host using the "Create Host" tab</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Subscription Expires</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {hosts.map((host) => (
+                <TableRow key={host.id}>
+                  <TableCell className="font-medium">{host.name}</TableCell>
+                  <TableCell>{host.email}</TableCell>
+                  <TableCell>{host.phone || 'N/A'}</TableCell>
+                  <TableCell>
+                    {new Date(host.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    {host.subscription_expires_at 
+                      ? new Date(host.subscription_expires_at).toLocaleDateString()
+                      : 'No expiry'
+                    }
+                  </TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      host.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {host.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => extendSubscription(host.id)}
+                        title="Extend Subscription"
+                      >
+                        <Calendar size={16} />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEditingHost(host)}
+                        title="Change Password"
+                      >
+                        <Edit size={16} />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => deleteHost(host.id)}
+                        className="text-red-600 hover:text-red-700"
+                        title="Delete Host"
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       {editingHost && (
         <div className="mt-6 p-4 border rounded-lg bg-gray-50">

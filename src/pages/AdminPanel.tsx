@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +18,8 @@ interface Host {
   id: string;
   name: string;
   email: string;
+  phone: string | null;
+  is_active: boolean;
 }
 
 const AdminPanel = () => {
@@ -30,6 +31,7 @@ const AdminPanel = () => {
   const [hosts, setHosts] = useState<Host[]>([]);
   const [adminWinners, setAdminWinners] = useState<{ticketNumber: number, prizeType: PrizeType, hostId: string}[]>([]);
   const [activeTab, setActiveTab] = useState<'winners' | 'hosts' | 'management'>('winners');
+  const [isLoading, setIsLoading] = useState(true);
 
   const prizeOptions: { value: PrizeType; label: string }[] = [
     { value: 'first_line', label: 'First Line' },
@@ -46,16 +48,30 @@ const AdminPanel = () => {
 
   const fetchHosts = async () => {
     try {
+      setIsLoading(true);
+      console.log('Fetching hosts from database...');
+      
       const { data, error } = await supabase
         .from('hosts')
-        .select('id, name, email')
-        .eq('is_active', true)
+        .select('id, name, email, phone, is_active')
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching hosts:', error);
+        throw error;
+      }
+      
+      console.log('Fetched hosts:', data);
       setHosts(data || []);
     } catch (error) {
       console.error('Error fetching hosts:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch hosts from database",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -181,8 +197,16 @@ const AdminPanel = () => {
 
   const getHostName = (hostId: string) => {
     const host = hosts.find(h => h.id === hostId);
-    return host ? host.name : 'Unknown Host';
+    return host ? `${host.name} (${host.email})` : 'Unknown Host';
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 p-4 flex items-center justify-center">
+        <div className="text-lg">Loading admin panel...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 p-4">
@@ -222,6 +246,18 @@ const AdminPanel = () => {
             </Button>
           </div>
 
+          {/* Debug info */}
+          <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Database Status:</strong> Found {hosts.length} hosts in database
+              {hosts.length > 0 && (
+                <span className="ml-2">
+                  - Active: {hosts.filter(h => h.is_active).length}
+                </span>
+              )}
+            </p>
+          </div>
+
           {/* Tab Content */}
           {activeTab === 'winners' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -233,14 +269,20 @@ const AdminPanel = () => {
                     <Label>Host</Label>
                     <Select value={selectedHostId} onValueChange={setSelectedHostId}>
                       <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select host" />
+                        <SelectValue placeholder={hosts.length > 0 ? "Select host" : "No hosts found"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {hosts.map((host) => (
-                          <SelectItem key={host.id} value={host.id}>
-                            {host.name} ({host.email})
+                        {hosts.length > 0 ? (
+                          hosts.map((host) => (
+                            <SelectItem key={host.id} value={host.id}>
+                              {host.name} ({host.email}) {!host.is_active && '(Inactive)'}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-hosts" disabled>
+                            No hosts available
                           </SelectItem>
-                        ))}
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -273,8 +315,8 @@ const AdminPanel = () => {
                     </Select>
                   </div>
 
-                  <Button onClick={handleAddWinner} className="w-full">
-                    Add to Winner List
+                  <Button onClick={handleAddWinner} className="w-full" disabled={hosts.length === 0}>
+                    {hosts.length > 0 ? 'Add to Winner List' : 'No hosts available'}
                   </Button>
                 </div>
 
