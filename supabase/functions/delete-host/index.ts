@@ -37,7 +37,48 @@ serve(async (req) => {
       }
     )
 
-    // First delete from hosts table
+    console.log(`Starting deletion process for host: ${hostId}`)
+
+    // First, check if there are any games associated with this host
+    const { data: games, error: gamesCheckError } = await supabaseAdmin
+      .from('games')
+      .select('id, status')
+      .eq('host_id', hostId)
+
+    if (gamesCheckError) {
+      console.error('Error checking games:', gamesCheckError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to check host dependencies' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    // Delete or update related games first
+    if (games && games.length > 0) {
+      console.log(`Found ${games.length} games associated with host. Deleting them first.`)
+      
+      // Delete all games associated with this host
+      const { error: gamesDeleteError } = await supabaseAdmin
+        .from('games')
+        .delete()
+        .eq('host_id', hostId)
+
+      if (gamesDeleteError) {
+        console.error('Error deleting games:', gamesDeleteError)
+        return new Response(
+          JSON.stringify({ error: 'Failed to delete associated games' }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+    }
+
+    // Now delete from hosts table
     const { error: hostDeleteError } = await supabaseAdmin
       .from('hosts')
       .delete()
@@ -54,7 +95,7 @@ serve(async (req) => {
       )
     }
 
-    // Then delete the auth user
+    // Finally delete the auth user
     const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(hostId)
 
     if (authDeleteError) {
@@ -67,6 +108,8 @@ serve(async (req) => {
         }
       )
     }
+
+    console.log(`Successfully deleted host: ${hostId}`)
 
     return new Response(
       JSON.stringify({ success: true }),
