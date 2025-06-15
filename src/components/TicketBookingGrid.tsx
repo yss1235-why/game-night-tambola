@@ -33,13 +33,18 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
   // Get booked ticket IDs for quick lookup
   const bookedTicketIds = new Set(bookings.map(b => b.ticket_id));
 
-  // Group tickets by column (0-9, 10-19, etc.)
+  // Group tickets by column (1-10, 11-20, 21-30, etc.)
   const groupedTickets = tickets.reduce((acc, ticket) => {
     const column = Math.floor((ticket.ticket_number - 1) / 10);
     if (!acc[column]) acc[column] = [];
     acc[column].push(ticket);
     return acc;
   }, {} as Record<number, Ticket[]>);
+
+  // Sort tickets within each column by ticket number
+  Object.keys(groupedTickets).forEach(column => {
+    groupedTickets[parseInt(column)].sort((a, b) => a.ticket_number - b.ticket_number);
+  });
 
   const handleTicketClick = (ticketId: number) => {
     if (bookedTicketIds.has(ticketId)) return; // Can't select booked tickets
@@ -198,7 +203,7 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-10 gap-4">
         {Object.entries(groupedTickets).map(([column, columnTickets]) => (
           <div key={column} className="space-y-2">
             <h3 className="text-sm font-medium text-gray-600 text-center">
@@ -218,7 +223,7 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
                       ${getTicketStyles(status)}
                     `}
                   >
-                    <div className="font-medium">#{ticket.ticket_number}</div>
+                    <div className="font-medium">{ticket.ticket_number}</div>
                     {booking && (
                       <div className="text-xs text-gray-600 mt-1">
                         {booking.player_name}
