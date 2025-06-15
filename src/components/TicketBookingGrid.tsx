@@ -309,13 +309,21 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
           )}
         </div>
 
+        {/* Booking Instructions */}
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="text-sm font-medium text-blue-800 mb-1">How to book tickets:</h3>
+          <p className="text-xs text-blue-700">
+            1. Click on green (available) tickets to select them • 2. Click "Book Selected Tickets" • 3. Enter player details • 4. Confirm booking
+          </p>
+        </div>
+
         <div className="space-y-3">
           {ticketRows.map((row, rowIndex) => (
             <div key={rowIndex} className="space-y-2">
               <h3 className="text-sm font-medium text-gray-600 text-center">
                 Tickets {rowIndex * 10 + 1}-{Math.min((rowIndex + 1) * 10, maxTickets)}
               </h3>
-              <div className="grid grid-cols-10 gap-2">
+              <div className="grid grid-cols-10 gap-1">
                 {row.map(({ ticketNumber, ticket }) => {
                   const status = getTicketStatus(ticketNumber);
                   const booking = ticket ? bookings.find(b => b.ticket_id === ticket.id) : null;
@@ -325,18 +333,18 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
                       <div
                         onClick={() => ticket && handleTicketClick(ticketNumber)}
                         className={`
-                          p-2 border rounded text-center text-sm transition-colors min-h-[48px] flex flex-col justify-center
+                          aspect-square border rounded text-center text-xs transition-colors flex flex-col justify-center items-center p-1
                           ${getTicketStyles(status)}
                         `}
                       >
-                        <div className="font-medium">{ticketNumber}</div>
+                        <div className="font-medium text-xs">{ticketNumber}</div>
                         {booking && (
-                          <div className="text-xs text-gray-600 mt-1 truncate">
-                            {booking.player_name}
+                          <div className="text-[10px] text-gray-600 mt-0.5 truncate max-w-full">
+                            {booking.player_name.split(' ')[0]}
                           </div>
                         )}
                         {!ticket && (
-                          <div className="text-xs text-gray-500 mt-1">
+                          <div className="text-[10px] text-gray-500 mt-0.5">
                             N/A
                           </div>
                         )}
@@ -352,7 +360,7 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
         <div className="mt-4 text-xs text-gray-500 space-y-1">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
-            <span>Available</span>
+            <span>Available (Click to select)</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-blue-200 border border-blue-400 rounded"></div>
