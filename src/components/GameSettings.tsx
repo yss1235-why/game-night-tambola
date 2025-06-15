@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,14 +22,16 @@ const GameSettings: React.FC<GameSettingsProps> = ({ game, onGameUpdated }) => {
   );
 
   const availablePrizes: { value: PrizeType; label: string; description: string }[] = [
-    { value: 'early_five', label: 'Early Five', description: 'First 5 numbers marked' },
-    { value: 'corners', label: 'Four Corners', description: 'All 4 corner numbers marked' },
+    { value: 'quick_five', label: 'Quick 5', description: 'First 5 numbers marked' },
+    { value: 'corners', label: 'Corners', description: 'All 4 corner numbers marked' },
+    { value: 'star_corners', label: 'Star Corners', description: 'All corner numbers plus center marked' },
     { value: 'top_line', label: 'Top Line', description: 'Complete top row' },
     { value: 'middle_line', label: 'Middle Line', description: 'Complete middle row' },
     { value: 'bottom_line', label: 'Bottom Line', description: 'Complete bottom row' },
     { value: 'half_sheet', label: 'Half Sheet', description: 'Any two complete rows' },
+    { value: 'full_sheet', label: 'Full Sheet', description: 'Complete ticket with all rows' },
     { value: 'full_house', label: 'Full House', description: 'All 15 numbers on ticket' },
-    { value: 'full_sheet', label: 'Full Sheet', description: 'Complete ticket with all rows' }
+    { value: 'second_full_house', label: '2nd Full House', description: 'Second ticket to complete all 15 numbers' }
   ];
 
   const handlePrizeToggle = (prize: PrizeType) => {

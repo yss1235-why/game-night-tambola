@@ -28,7 +28,7 @@ const AdminPanel = () => {
   const navigate = useNavigate();
   const { currentGame, tickets, bookings, winners } = useGameData();
   const [selectedTicketNumber, setSelectedTicketNumber] = useState('');
-  const [selectedPrizeType, setSelectedPrizeType] = useState<PrizeType>('top_line');
+  const [selectedPrizeType, setSelectedPrizeType] = useState<PrizeType>('quick_five');
   const [selectedHostId, setSelectedHostId] = useState('');
   const [hosts, setHosts] = useState<Host[]>([]);
   const [adminWinners, setAdminWinners] = useState<{ticketNumber: number, prizeType: PrizeType, hostId: string}[]>([]);
@@ -36,12 +36,16 @@ const AdminPanel = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const prizeOptions: { value: PrizeType; label: string }[] = [
+    { value: 'quick_five', label: 'Quick 5' },
+    { value: 'corners', label: 'Corners' },
+    { value: 'star_corners', label: 'Star Corners' },
     { value: 'top_line', label: 'Top Line' },
     { value: 'middle_line', label: 'Middle Line' },
     { value: 'bottom_line', label: 'Bottom Line' },
+    { value: 'half_sheet', label: 'Half Sheet' },
+    { value: 'full_sheet', label: 'Full Sheet' },
     { value: 'full_house', label: 'Full House' },
-    { value: 'early_five', label: 'Early Five' },
-    { value: 'corners', label: 'Corners' }
+    { value: 'second_full_house', label: '2nd Full House' }
   ];
 
   useEffect(() => {

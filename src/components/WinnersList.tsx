@@ -74,14 +74,16 @@ const WinnersList: React.FC<WinnersListProps> = ({ winners, tickets, bookings })
 
   const getPrizeDisplayName = (prizeType: string) => {
     switch (prizeType) {
+      case 'quick_five': return 'QUICK 5';
+      case 'corners': return 'CORNERS';
+      case 'star_corners': return 'STAR CORNERS';
       case 'top_line': return 'TOP LINE';
       case 'middle_line': return 'MIDDLE LINE';
       case 'bottom_line': return 'BOTTOM LINE';
-      case 'full_house': return 'FULL HOUSE';
-      case 'early_five': return 'EARLY FIVE';
-      case 'corners': return 'FOUR CORNERS';
       case 'half_sheet': return 'HALF SHEET';
       case 'full_sheet': return 'FULL SHEET';
+      case 'full_house': return 'FULL HOUSE';
+      case 'second_full_house': return '2ND FULL HOUSE';
       default: return prizeType.replace('_', ' ').toUpperCase();
     }
   };
