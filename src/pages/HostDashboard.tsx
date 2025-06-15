@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ const HostDashboard: React.FC = () => {
   const [editDelay, setEditDelay] = useState(5);
   const [editTicketSet, setEditTicketSet] = useState('demo-set-1');
   const [editPrizes, setEditPrizes] = useState<PrizeType[]>(['first_line', 'full_house']);
+  const [editHostPhone, setEditHostPhone] = useState('');
 
   useEffect(() => {
     if (currentGame?.status === 'active' && !isNumberCalling) {
@@ -38,6 +40,7 @@ const HostDashboard: React.FC = () => {
       setEditDelay(currentGame.number_calling_delay || 5);
       setEditTicketSet(currentGame.ticket_set || 'demo-set-1');
       setEditPrizes((currentGame.selected_prizes as PrizeType[]) || ['first_line', 'full_house']);
+      setEditHostPhone(currentGame.host_phone || '');
     }
   }, [currentGame]);
 
@@ -96,13 +99,23 @@ const HostDashboard: React.FC = () => {
       return;
     }
 
+    if (!editHostPhone.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a WhatsApp phone number",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('games')
         .update({
           number_calling_delay: editDelay,
           ticket_set: editTicketSet,
-          selected_prizes: editPrizes as string[]
+          selected_prizes: editPrizes as string[],
+          host_phone: editHostPhone
         })
         .eq('id', currentGame.id);
 
@@ -507,6 +520,18 @@ const HostDashboard: React.FC = () => {
               <DialogTitle>Edit Game Settings</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
+              <div>
+                <Label htmlFor="editHostPhone">WhatsApp Phone Number</Label>
+                <Input
+                  id="editHostPhone"
+                  type="tel"
+                  placeholder="+1234567890"
+                  value={editHostPhone}
+                  onChange={(e) => setEditHostPhone(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+
               <div>
                 <Label htmlFor="editTicketSet">Ticket Set</Label>
                 <Select value={editTicketSet} onValueChange={setEditTicketSet}>
