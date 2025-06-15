@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,10 +32,15 @@ const HostDashboard: React.FC = () => {
   const [editMaxTickets, setEditMaxTickets] = useState(100);
 
   useEffect(() => {
+    console.log('Game status changed:', currentGame?.status, 'isNumberCalling:', isNumberCalling);
     if (currentGame?.status === 'active' && !isNumberCalling) {
+      console.log('Starting number calling because game is active');
       startNumberCalling();
+    } else if (currentGame?.status === 'paused' || currentGame?.status === 'ended') {
+      console.log('Stopping number calling because game is paused/ended');
+      setIsNumberCalling(false);
     }
-  }, [currentGame?.status]);
+  }, [currentGame?.status, isNumberCalling]);
 
   useEffect(() => {
     if (currentGame) {
@@ -329,21 +332,34 @@ const HostDashboard: React.FC = () => {
   };
 
   const startNumberCalling = async () => {
-    if (!currentGame || currentGame.status !== 'active') return;
+    if (!currentGame || currentGame.status !== 'active') {
+      console.log('Cannot start number calling - game not active');
+      return;
+    }
 
+    console.log('Starting number calling...');
     setIsNumberCalling(true);
     
     const callNextNumber = async () => {
-      if (!currentGame || currentGame.status !== 'active') {
+      // Re-fetch current game state to ensure we have the latest data
+      const { data: latestGame } = await supabase
+        .from('games')
+        .select('*')
+        .eq('id', currentGame.id)
+        .single();
+
+      if (!latestGame || latestGame.status !== 'active') {
+        console.log('Stopping number calling - game no longer active');
         setIsNumberCalling(false);
         return;
       }
 
-      const calledNumbers = currentGame.numbers_called || [];
+      const calledNumbers = latestGame.numbers_called || [];
       const availableNumbers = Array.from({ length: 90 }, (_, i) => i + 1)
         .filter(num => !calledNumbers.includes(num));
 
       if (availableNumbers.length === 0) {
+        console.log('No more numbers to call');
         setIsNumberCalling(false);
         return;
       }
@@ -383,7 +399,7 @@ const HostDashboard: React.FC = () => {
         if (error) throw error;
 
         // Schedule next number
-        setTimeout(callNextNumber, (currentGame.number_calling_delay || 5) * 1000);
+        setTimeout(callNextNumber, (latestGame.number_calling_delay || 5) * 1000);
       } catch (error) {
         console.error('Error calling number:', error);
         setIsNumberCalling(false);
@@ -533,6 +549,7 @@ const HostDashboard: React.FC = () => {
                   <p><strong>Host Phone:</strong> {currentGame.host_phone || 'Not set'}</p>
                   <p><strong>Ticket Set:</strong> {currentGame.ticket_set || 'Not set'}</p>
                   <p><strong>Selected Prizes:</strong> {currentGame.selected_prizes?.join(', ') || 'None'}</p>
+                  <p><strong>Number Calling Active:</strong> {isNumberCalling ? 'Yes' : 'No'}</p>
                   
                   <div className="space-y-2 mt-4">
                     {currentGame.status === 'waiting' && (
@@ -705,4 +722,3 @@ const HostDashboard: React.FC = () => {
 };
 
 export default HostDashboard;
-
