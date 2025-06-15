@@ -33,27 +33,29 @@ const CreateHostForm: React.FC<CreateHostFormProps> = ({ onHostCreated }) => {
 
     setIsLoading(true);
     try {
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: formData.email,
-        password: formData.password,
-        email_confirm: true
+      console.log('Creating host via edge function:', formData.email);
+      
+      // Use the create-admin edge function instead of direct auth calls
+      const { data, error } = await supabase.functions.invoke('create-admin', {
+        body: {
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          phone: formData.phone
+        }
       });
 
-      if (authError) throw authError;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
 
-      // Create host record - fix: remove array wrapper and convert Date to string
-      const { error: hostError } = await supabase
-        .from('hosts')
-        .insert({
-          id: authData.user.id,
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          subscription_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-        });
+      if (data.error) {
+        console.error('Edge function returned error:', data.error);
+        throw new Error(data.error);
+      }
 
-      if (hostError) throw hostError;
+      console.log('Host created successfully:', data);
 
       toast({
         title: "Success",
