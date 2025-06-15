@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Ticket, Booking, Game } from '@/types/game';
-import { X } from 'lucide-react';
+import { X, Edit } from 'lucide-react';
 
 interface TicketBookingGridProps {
   tickets: Ticket[];
@@ -29,22 +29,41 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
   const [playerPhone, setPlayerPhone] = useState('');
   const [isBookingDialogOpen, setIsBookingDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [editPlayerName, setEditPlayerName] = useState('');
+  const [editPlayerPhone, setEditPlayerPhone] = useState('');
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   // Get booked ticket IDs for quick lookup
   const bookedTicketIds = new Set(bookings.map(b => b.ticket_id));
 
-  // Group tickets by column (1-10, 11-20, 21-30, etc.)
-  const groupedTickets = tickets.reduce((acc, ticket) => {
-    const column = Math.floor((ticket.ticket_number - 1) / 10);
-    if (!acc[column]) acc[column] = [];
-    acc[column].push(ticket);
-    return acc;
-  }, {} as Record<number, Ticket[]>);
+  // Create grid with exactly 10 tickets per column
+  const createTicketGrid = () => {
+    const grid: Ticket[][] = [];
+    const ticketMap = new Map(tickets.map(ticket => [ticket.ticket_number, ticket]));
+    
+    // Calculate number of columns needed (each column has 10 tickets)
+    const maxTicketNumber = Math.max(...tickets.map(t => t.ticket_number), 0);
+    const numColumns = Math.ceil(maxTicketNumber / 10);
+    
+    for (let col = 0; col < numColumns; col++) {
+      const column: Ticket[] = [];
+      for (let row = 1; row <= 10; row++) {
+        const ticketNumber = col * 10 + row;
+        const ticket = ticketMap.get(ticketNumber);
+        if (ticket) {
+          column.push(ticket);
+        }
+      }
+      if (column.length > 0) {
+        grid.push(column);
+      }
+    }
+    
+    return grid;
+  };
 
-  // Sort tickets within each column by ticket number
-  Object.keys(groupedTickets).forEach(column => {
-    groupedTickets[parseInt(column)].sort((a, b) => a.ticket_number - b.ticket_number);
-  });
+  const ticketGrid = createTicketGrid();
 
   const handleTicketClick = (ticketId: number) => {
     if (bookedTicketIds.has(ticketId)) return; // Can't select booked tickets
@@ -54,6 +73,59 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
         ? prev.filter(id => id !== ticketId)
         : [...prev, ticketId]
     );
+  };
+
+  const handleEditBooking = (booking: Booking) => {
+    setEditingBooking(booking);
+    setEditPlayerName(booking.player_name);
+    setEditPlayerPhone(booking.player_phone || '');
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateBooking = async () => {
+    if (!editingBooking || !editPlayerName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter player name",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .update({
+          player_name: editPlayerName,
+          player_phone: editPlayerPhone || null
+        })
+        .eq('id', editingBooking.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Booking updated successfully",
+      });
+
+      setIsEditDialogOpen(false);
+      setEditingBooking(null);
+      setEditPlayerName('');
+      setEditPlayerPhone('');
+      onBookingComplete();
+
+    } catch (error) {
+      console.error('Error updating booking:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update booking. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleBookTickets = async () => {
@@ -203,31 +275,42 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-10 gap-4">
-        {Object.entries(groupedTickets).map(([column, columnTickets]) => (
-          <div key={column} className="space-y-2">
+      <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${ticketGrid.length}, 1fr)` }}>
+        {ticketGrid.map((column, columnIndex) => (
+          <div key={columnIndex} className="space-y-2">
             <h3 className="text-sm font-medium text-gray-600 text-center">
-              {parseInt(column) * 10 + 1}-{(parseInt(column) + 1) * 10}
+              {columnIndex * 10 + 1}-{(columnIndex + 1) * 10}
             </h3>
             <div className="space-y-1">
-              {columnTickets.map(ticket => {
+              {column.map(ticket => {
                 const status = getTicketStatus(ticket.id);
                 const booking = bookings.find(b => b.ticket_id === ticket.id);
                 
                 return (
-                  <div
-                    key={ticket.id}
-                    onClick={() => handleTicketClick(ticket.id)}
-                    className={`
-                      p-2 border rounded text-center text-sm transition-colors
-                      ${getTicketStyles(status)}
-                    `}
-                  >
-                    <div className="font-medium">{ticket.ticket_number}</div>
+                  <div key={ticket.id} className="relative">
+                    <div
+                      onClick={() => handleTicketClick(ticket.id)}
+                      className={`
+                        p-2 border rounded text-center text-sm transition-colors
+                        ${getTicketStyles(status)}
+                      `}
+                    >
+                      <div className="font-medium">{ticket.ticket_number}</div>
+                      {booking && (
+                        <div className="text-xs text-gray-600 mt-1">
+                          {booking.player_name}
+                        </div>
+                      )}
+                    </div>
                     {booking && (
-                      <div className="text-xs text-gray-600 mt-1">
-                        {booking.player_name}
-                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="absolute -top-1 -right-1 h-6 w-6 p-0 bg-white border border-gray-300 rounded-full"
+                        onClick={() => handleEditBooking(booking)}
+                      >
+                        <Edit size={12} />
+                      </Button>
                     )}
                   </div>
                 );
@@ -236,6 +319,54 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
           </div>
         ))}
       </div>
+
+      {/* Edit Booking Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Booking - Ticket {editingBooking?.ticket_id}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="editPlayerName">Player Name *</Label>
+              <Input
+                id="editPlayerName"
+                value={editPlayerName}
+                onChange={(e) => setEditPlayerName(e.target.value)}
+                placeholder="Enter player name"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="editPlayerPhone">Player Phone (Optional)</Label>
+              <Input
+                id="editPlayerPhone"
+                type="tel"
+                value={editPlayerPhone}
+                onChange={(e) => setEditPlayerPhone(e.target.value)}
+                placeholder="+1234567890"
+                className="mt-1"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleUpdateBooking}
+                disabled={isSubmitting}
+                className="flex-1"
+              >
+                {isSubmitting ? 'Updating...' : 'Update Booking'}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setIsEditDialogOpen(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="mt-4 text-xs text-gray-500 space-y-1">
         <div className="flex items-center gap-2">
@@ -248,7 +379,7 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-red-200 border border-red-400 rounded"></div>
-          <span>Booked</span>
+          <span>Booked (click edit icon to modify)</span>
         </div>
       </div>
     </Card>
