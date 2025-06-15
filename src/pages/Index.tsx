@@ -11,6 +11,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import PlayerView from './PlayerView';
+import CreateAdmin from '@/components/CreateAdmin';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -59,6 +60,11 @@ const Index = () => {
           <h1 className="text-4xl font-bold text-slate-800 mb-4">Tambola Game</h1>
           <p className="text-lg text-slate-600 mb-6">Join the fun and win exciting prizes!</p>
         </Card>
+
+        {/* Admin Creation Section */}
+        <div className="mb-6">
+          <CreateAdmin />
+        </div>
 
         <PlayerView />
       </div>
