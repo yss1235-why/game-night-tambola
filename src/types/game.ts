@@ -1,5 +1,5 @@
 export type GameStatus = 'waiting' | 'active' | 'paused' | 'ended';
-export type PrizeType = 'first_line' | 'second_line' | 'third_line' | 'full_house' | 'early_five' | 'corners';
+export type PrizeType = 'first_line' | 'second_line' | 'third_line' | 'full_house' | 'early_five' | 'corners' | 'half_sheet' | 'full_sheet';
 
 export interface Game {
   id: string;
@@ -21,10 +21,10 @@ export interface Game {
 export interface Ticket {
   id: number;
   ticket_number: number;
-  numbers: number[];
-  row1: number[];
-  row2: number[];
-  row3: number[];
+  numbers: number[]; // Now exactly 15 numbers
+  row1: number[]; // Now exactly 5 numbers
+  row2: number[]; // Now exactly 5 numbers
+  row3: number[]; // Now exactly 5 numbers
 }
 
 export interface Booking {

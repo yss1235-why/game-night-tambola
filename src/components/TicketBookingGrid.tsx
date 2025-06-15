@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Ticket, Booking, Game } from '@/types/game';
+import { generateHousieTicket } from '@/utils/ticketGenerator';
 import { X, Edit } from 'lucide-react';
 
 interface TicketBookingGridProps {
@@ -58,16 +59,6 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
     return numberA - numberB;
   });
 
-  // Debug logging - enhanced for real-time tracking
-  useEffect(() => {
-    console.log('TicketBookingGrid - Real-time update detected');
-    console.log('TicketBookingGrid - maxTickets:', maxTickets);
-    console.log('TicketBookingGrid - total tickets:', tickets.length);
-    console.log('TicketBookingGrid - total bookings:', bookings.length);
-    console.log('TicketBookingGrid - bookedTicketNumbers:', Array.from(bookedTicketNumbers));
-    console.log('TicketBookingGrid - will display tickets 1 to:', maxTickets);
-  }, [maxTickets, tickets, bookings, bookedTicketNumbers]);
-
   // Clear selection when bookings change to avoid UI inconsistencies
   useEffect(() => {
     const invalidSelections = selectedTickets.filter(ticketId => {
@@ -94,8 +85,6 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
     // Calculate number of rows needed (each row has 10 tickets)
     const numRows = Math.ceil(maxTickets / 10);
     
-    console.log('Creating ticket rows - numRows:', numRows, 'maxTickets:', maxTickets);
-    
     for (let row = 0; row < numRows; row++) {
       const rowTickets: { ticketNumber: number; ticket?: Ticket }[] = [];
       for (let col = 1; col <= 10; col++) {
@@ -110,7 +99,6 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
       }
     }
     
-    console.log('Created ticket rows:', rows.length, 'with tickets per row:', rows.map(row => row.length));
     return rows;
   };
 
@@ -217,16 +205,13 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
             throw new Error(`Ticket ${ticketNumber} is already booked`);
           }
           
-          // Create the ticket first
+          // Generate the ticket data using our new generator
+          const ticketData = generateHousieTicket(ticketNumber);
+          
+          // Create the ticket in the database
           const { data: newTicket, error: ticketError } = await supabase
             .from('tickets')
-            .insert({
-              ticket_number: ticketNumber,
-              numbers: [], // Add default empty array
-              row1: [], // Add default empty array
-              row2: [], // Add default empty array
-              row3: [] // Add default empty array
-            })
+            .insert(ticketData)
             .select()
             .single();
             

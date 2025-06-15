@@ -30,11 +30,23 @@ const PlayerTicketView: React.FC<PlayerTicketViewProps> = ({
 
   const renderTicketGrid = (ticket: Ticket, ticketBookings: Booking[]) => {
     const renderRow = (numbers: number[], rowIndex: number) => {
+      // Create a 9-column grid for this row
       const fullRow = Array(9).fill(null);
       
+      // Place numbers in correct columns based on their value ranges
       numbers.forEach(num => {
-        const colIndex = Math.floor(num / 10);
-        if (colIndex < 9) {
+        let colIndex;
+        if (num >= 1 && num <= 9) colIndex = 0;
+        else if (num >= 10 && num <= 19) colIndex = 1;
+        else if (num >= 20 && num <= 29) colIndex = 2;
+        else if (num >= 30 && num <= 39) colIndex = 3;
+        else if (num >= 40 && num <= 49) colIndex = 4;
+        else if (num >= 50 && num <= 59) colIndex = 5;
+        else if (num >= 60 && num <= 69) colIndex = 6;
+        else if (num >= 70 && num <= 79) colIndex = 7;
+        else if (num >= 80 && num <= 90) colIndex = 8;
+        
+        if (colIndex !== undefined) {
           fullRow[colIndex] = num;
         }
       });
