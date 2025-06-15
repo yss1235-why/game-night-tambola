@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useGameData } from '@/hooks/useGameData';
 import GameStatus from '@/components/GameStatus';
@@ -142,6 +143,7 @@ const PlayerView: React.FC = () => {
             tickets={tickets}
             bookings={bookings}
             calledNumbers={currentGame?.numbers_called || []}
+            currentNumber={currentGame?.current_number}
             onRemoveTicket={removeTicketFromView}
           />
         )}
@@ -152,6 +154,8 @@ const PlayerView: React.FC = () => {
             winners={winners}
             tickets={tickets}
             bookings={bookings}
+            calledNumbers={currentGame?.numbers_called || []}
+            currentNumber={currentGame?.current_number}
           />
         )}
 

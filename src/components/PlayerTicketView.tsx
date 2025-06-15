@@ -10,6 +10,7 @@ interface PlayerTicketViewProps {
   tickets: Ticket[];
   bookings: Booking[];
   calledNumbers: number[];
+  currentNumber?: number | null;
   onRemoveTicket: (ticketNumber: number) => void;
 }
 
@@ -18,6 +19,7 @@ const PlayerTicketView: React.FC<PlayerTicketViewProps> = ({
   tickets,
   bookings,
   calledNumbers,
+  currentNumber,
   onRemoveTicket
 }) => {
   const getTicketByNumber = (ticketNumber: number) => {
@@ -26,6 +28,22 @@ const PlayerTicketView: React.FC<PlayerTicketViewProps> = ({
 
   const getBookingsForTicket = (ticketId: number) => {
     return bookings.filter(b => b.ticket_id === ticketId);
+  };
+
+  const getNumberStyle = (num: number | null) => {
+    if (!num) return 'bg-gray-100';
+    
+    const isCalled = calledNumbers.includes(num);
+    const isCurrent = currentNumber === num;
+    
+    if (isCurrent && isCalled) {
+      return 'bg-yellow-400 text-black font-bold border-2 border-yellow-600';
+    }
+    if (isCalled) {
+      return 'bg-green-500 text-white font-semibold';
+    }
+    
+    return 'bg-white';
   };
 
   const renderTicketGrid = (ticket: Ticket, ticketBookings: Booking[]) => {
@@ -57,9 +75,8 @@ const PlayerTicketView: React.FC<PlayerTicketViewProps> = ({
             <div
               key={colIndex}
               className={`
-                h-10 w-10 border border-gray-300 flex items-center justify-center text-sm font-medium
-                ${num && calledNumbers.includes(num) ? 'bg-green-500 text-white' : ''}
-                ${num ? 'bg-white' : 'bg-gray-100'}
+                h-10 w-10 border border-gray-300 flex items-center justify-center text-sm font-medium transition-colors
+                ${getNumberStyle(num)}
               `}
             >
               {num || ''}
@@ -75,6 +92,24 @@ const PlayerTicketView: React.FC<PlayerTicketViewProps> = ({
           {[ticket.row1, ticket.row2, ticket.row3].map((row, index) => 
             renderRow(row, index)
           )}
+        </div>
+        
+        {/* Color Legend */}
+        <div className="text-xs text-gray-600 space-y-1">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-white border border-gray-300"></div>
+              <span>Not Called</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-green-500"></div>
+              <span>Called</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-yellow-400 border-2 border-yellow-600"></div>
+              <span>Current</span>
+            </div>
+          </div>
         </div>
         
         {ticketBookings.length > 0 && (

@@ -8,6 +8,8 @@ interface TicketGridProps {
   ticket: Ticket;
   booking?: Booking;
   calledNumbers: number[];
+  currentNumber?: number | null;
+  winningNumbers?: number[];
   onWhatsAppBook?: () => void;
   showNumbers?: boolean;
 }
@@ -16,10 +18,32 @@ const TicketGrid: React.FC<TicketGridProps> = ({
   ticket,
   booking,
   calledNumbers,
+  currentNumber,
+  winningNumbers = [],
   onWhatsAppBook,
   showNumbers = false
 }) => {
   const isBooked = !!booking;
+  
+  const getNumberStyle = (num: number | null) => {
+    if (!num) return 'bg-gray-100';
+    
+    const isCalled = calledNumbers.includes(num);
+    const isWinning = winningNumbers.includes(num);
+    const isCurrent = currentNumber === num;
+    
+    if (isCurrent && isCalled) {
+      return 'bg-yellow-400 text-black font-bold border-2 border-yellow-600';
+    }
+    if (isWinning && isCalled) {
+      return 'bg-purple-500 text-white font-bold';
+    }
+    if (isCalled) {
+      return 'bg-green-500 text-white font-semibold';
+    }
+    
+    return 'bg-white';
+  };
   
   const renderRow = (numbers: number[], rowIndex: number) => {
     // Create a 9-column grid for this row
@@ -49,9 +73,8 @@ const TicketGrid: React.FC<TicketGridProps> = ({
           <div
             key={colIndex}
             className={`
-              h-8 w-8 border border-gray-300 flex items-center justify-center text-xs font-medium
-              ${num && calledNumbers.includes(num) ? 'bg-green-500 text-white' : ''}
-              ${num ? 'bg-white' : 'bg-gray-100'}
+              h-8 w-8 border border-gray-300 flex items-center justify-center text-xs font-medium transition-colors
+              ${getNumberStyle(num)}
             `}
           >
             {showNumbers && num ? num : ''}
@@ -76,6 +99,28 @@ const TicketGrid: React.FC<TicketGridProps> = ({
         {[ticket.row1, ticket.row2, ticket.row3].map((row, index) => 
           renderRow(row, index)
         )}
+      </div>
+
+      {/* Color Legend */}
+      <div className="text-xs text-gray-600 space-y-1 mb-3">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-white border border-gray-300"></div>
+            <span>Not Called</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-green-500"></div>
+            <span>Called</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-purple-500"></div>
+            <span>Winning</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-yellow-400 border-2 border-yellow-600"></div>
+            <span>Current</span>
+          </div>
+        </div>
       </div>
 
       {!isBooked && onWhatsAppBook && (

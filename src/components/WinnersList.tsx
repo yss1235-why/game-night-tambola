@@ -8,9 +8,17 @@ interface WinnersListProps {
   winners: Winner[];
   tickets: Ticket[];
   bookings: Booking[];
+  calledNumbers?: number[];
+  currentNumber?: number | null;
 }
 
-const WinnersList: React.FC<WinnersListProps> = ({ winners, tickets, bookings }) => {
+const WinnersList: React.FC<WinnersListProps> = ({ 
+  winners, 
+  tickets, 
+  bookings, 
+  calledNumbers = [],
+  currentNumber 
+}) => {
   const [selectedWinner, setSelectedWinner] = useState<Winner | null>(null);
 
   const getTicketForWinner = (winner: Winner) => {
@@ -21,8 +29,59 @@ const WinnersList: React.FC<WinnersListProps> = ({ winners, tickets, bookings })
     return bookings.find(b => b.ticket_id === ticketId);
   };
 
-  const renderTicketGrid = (ticket: Ticket) => {
+  const getWinningNumbers = (ticket: Ticket, prizeType: string) => {
+    if (!ticket) return [];
+    
+    switch (prizeType) {
+      case 'quick_five':
+        // Return first 5 called numbers that are on the ticket
+        return ticket.numbers.filter(num => calledNumbers.includes(num)).slice(0, 5);
+      case 'corners':
+        return [ticket.row1[0], ticket.row1[4], ticket.row3[0], ticket.row3[4]];
+      case 'star_corners':
+        return [ticket.row1[0], ticket.row1[4], ticket.row2[2], ticket.row3[0], ticket.row3[4]];
+      case 'top_line':
+        return ticket.row1;
+      case 'middle_line':
+        return ticket.row2;
+      case 'bottom_line':
+        return ticket.row3;
+      case 'full_house':
+      case 'second_full_house':
+        return ticket.numbers;
+      case 'half_sheet':
+      case 'full_sheet':
+        // For sheets, highlight all numbers on the winning ticket
+        return ticket.numbers;
+      default:
+        return [];
+    }
+  };
+
+  const getNumberStyle = (num: number | null, winningNumbers: number[]) => {
+    if (!num) return 'bg-gray-50';
+    
+    const isCalled = calledNumbers.includes(num);
+    const isWinning = winningNumbers.includes(num);
+    const isCurrent = currentNumber === num;
+    
+    if (isCurrent && isCalled) {
+      return 'bg-yellow-400 text-black font-bold border-2 border-yellow-600';
+    }
+    if (isWinning && isCalled) {
+      return 'bg-purple-500 text-white font-bold';
+    }
+    if (isCalled) {
+      return 'bg-green-500 text-white font-semibold';
+    }
+    
+    return 'bg-blue-100';
+  };
+
+  const renderTicketGrid = (ticket: Ticket, prizeType: string) => {
     if (!ticket) return null;
+
+    const winningNumbers = getWinningNumbers(ticket, prizeType);
 
     const renderRow = (numbers: number[], rowIndex: number) => {
       // Create a 9-column grid for this row
@@ -52,8 +111,8 @@ const WinnersList: React.FC<WinnersListProps> = ({ winners, tickets, bookings })
             <div
               key={colIndex}
               className={`
-                h-10 w-10 border border-gray-300 flex items-center justify-center text-sm font-medium
-                ${num ? 'bg-blue-100' : 'bg-gray-50'}
+                h-10 w-10 border border-gray-300 flex items-center justify-center text-sm font-medium transition-colors
+                ${getNumberStyle(num, winningNumbers)}
               `}
             >
               {num || ''}
@@ -68,6 +127,28 @@ const WinnersList: React.FC<WinnersListProps> = ({ winners, tickets, bookings })
         {[ticket.row1, ticket.row2, ticket.row3].map((row, index) => 
           renderRow(row, index)
         )}
+        
+        {/* Color Legend */}
+        <div className="text-xs text-gray-600 mt-3">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-blue-100 border border-gray-300"></div>
+              <span>Not Called</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-green-500"></div>
+              <span>Called</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-purple-500"></div>
+              <span>Winning</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-yellow-400 border-2 border-yellow-600"></div>
+              <span>Current</span>
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
@@ -192,7 +273,7 @@ const WinnersList: React.FC<WinnersListProps> = ({ winners, tickets, bookings })
                       {ticket && (
                         <div>
                           <h4 className="font-medium mb-2">Winning Ticket #{ticket.ticket_number}:</h4>
-                          {renderTicketGrid(ticket)}
+                          {renderTicketGrid(ticket, winner.prize_type)}
                         </div>
                       )}
                     </div>
