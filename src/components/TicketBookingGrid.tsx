@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +41,14 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
   const maxTickets = currentGame.max_tickets || 100;
   const availableTickets = tickets.filter(ticket => ticket.ticket_number <= maxTickets);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('TicketBookingGrid - maxTickets:', maxTickets);
+    console.log('TicketBookingGrid - total tickets:', tickets.length);
+    console.log('TicketBookingGrid - available tickets:', availableTickets.length);
+    console.log('TicketBookingGrid - available ticket numbers:', availableTickets.map(t => t.ticket_number));
+  }, [maxTickets, tickets, availableTickets]);
+
   // Create rows with exactly 10 tickets per row
   const createTicketRows = () => {
     const rows: Ticket[][] = [];
@@ -47,6 +56,8 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
     
     // Calculate number of rows needed (each row has 10 tickets)
     const numRows = Math.ceil(maxTickets / 10);
+    
+    console.log('Creating ticket rows - numRows:', numRows, 'maxTickets:', maxTickets);
     
     for (let row = 0; row < numRows; row++) {
       const rowTickets: Ticket[] = [];
@@ -64,6 +75,7 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
       }
     }
     
+    console.log('Created ticket rows:', rows.length, 'with tickets:', rows.map(row => row.length));
     return rows;
   };
 
