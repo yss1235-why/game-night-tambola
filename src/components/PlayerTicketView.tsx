@@ -46,6 +46,14 @@ const PlayerTicketView: React.FC<PlayerTicketViewProps> = ({
     return 'bg-gradient-to-br from-white to-gray-50 border-gray-300 hover:shadow-sm transition-shadow';
   };
 
+  const handleWhatsAppRedirect = (ticketNumber: number) => {
+    const hostPhone = "1234567890"; // You can make this dynamic from game data
+    const message = `Hi! I would like to book ticket #${ticketNumber} for the Tambola game.`;
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${hostPhone}?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   const renderTicketGrid = (ticket: Ticket, ticketBookings: Booking[]) => {
     const renderRow = (numbers: number[], rowIndex: number) => {
       // Create a 9-column grid for this row
@@ -94,35 +102,13 @@ const PlayerTicketView: React.FC<PlayerTicketViewProps> = ({
           )}
         </div>
         
-        {/* Enhanced Color Legend */}
-        <div className="bg-gray-50 rounded-lg p-3">
-          <div className="text-xs font-medium text-gray-700 mb-2">Legend:</div>
-          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-gradient-to-br from-white to-gray-50 border border-gray-300 rounded"></div>
-              <span>Not Called</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-gradient-to-br from-green-500 to-green-600 rounded"></div>
-              <span>Called</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-gradient-to-br from-yellow-400 to-yellow-500 border-2 border-yellow-600 rounded"></div>
-              <span>Current</span>
-            </div>
-          </div>
-        </div>
-        
-        {ticketBookings.length > 0 && (
-          <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-            <div className="text-sm font-medium text-blue-800 mb-1">Booked by:</div>
-            {ticketBookings.map((booking, index) => (
-              <div key={booking.id} className="text-sm text-blue-700">
-                <span className="font-medium">{booking.player_name}</span>
-                {booking.player_phone && <span className="text-blue-600"> ({booking.player_phone})</span>}
-              </div>
-            ))}
-          </div>
+        {ticketBookings.length === 0 && (
+          <Button 
+            onClick={() => handleWhatsAppRedirect(ticket.ticket_number)}
+            className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+          >
+            📱 Book This
+          </Button>
         )}
       </div>
     );
@@ -149,6 +135,13 @@ const PlayerTicketView: React.FC<PlayerTicketViewProps> = ({
                 <X size={16} />
               </Button>
               
+              {/* Top corner booking info */}
+              {ticketBookings.length > 0 && (
+                <div className="absolute top-4 right-12 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  {ticketBookings[0].player_name}
+                </div>
+              )}
+              
               <div className="mb-4">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold">
@@ -159,11 +152,6 @@ const PlayerTicketView: React.FC<PlayerTicketViewProps> = ({
                 {!ticket && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-2">
                     <p className="text-sm text-red-600 font-medium">Ticket not found</p>
-                  </div>
-                )}
-                {ticket && ticketBookings.length === 0 && (
-                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-2">
-                    <p className="text-sm text-orange-600 font-medium">Not booked</p>
                   </div>
                 )}
               </div>

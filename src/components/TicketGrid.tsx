@@ -88,8 +88,23 @@ const TicketGrid: React.FC<TicketGridProps> = ({
     );
   };
 
+  const handleWhatsAppRedirect = () => {
+    const hostPhone = "1234567890"; // You can make this dynamic from game data
+    const message = `Hi! I would like to book ticket #${ticket.ticket_number} for the Tambola game.`;
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${hostPhone}?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   return (
-    <Card className={`p-6 ${isBooked ? 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-300 shadow-md' : 'bg-white shadow-sm hover:shadow-md transition-shadow'} rounded-xl border-2`}>
+    <Card className={`p-6 ${isBooked ? 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-300 shadow-md' : 'bg-white shadow-sm hover:shadow-md transition-shadow'} rounded-xl border-2 relative`}>
+      {/* Top corner booking info */}
+      {isBooked && (
+        <div className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+          {booking.player_name}
+        </div>
+      )}
+      
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-3">
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold">
@@ -97,11 +112,6 @@ const TicketGrid: React.FC<TicketGridProps> = ({
           </div>
           <h3 className="font-bold text-lg text-gray-800">Ticket</h3>
         </div>
-        {isBooked && (
-          <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-            {booking.player_name}
-          </div>
-        )}
       </div>
       
       <div className="space-y-2 mb-4">
@@ -110,35 +120,12 @@ const TicketGrid: React.FC<TicketGridProps> = ({
         )}
       </div>
 
-      {/* Enhanced Color Legend */}
-      <div className="bg-gray-50 rounded-lg p-3 mb-4">
-        <div className="text-xs font-medium text-gray-700 mb-2">Legend:</div>
-        <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-gradient-to-br from-white to-gray-50 border border-gray-300 rounded"></div>
-            <span>Not Called</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-gradient-to-br from-green-500 to-green-600 rounded"></div>
-            <span>Called</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-gradient-to-br from-purple-500 to-purple-600 rounded"></div>
-            <span>Winning</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-gradient-to-br from-yellow-400 to-yellow-500 border-2 border-yellow-600 rounded"></div>
-            <span>Current</span>
-          </div>
-        </div>
-      </div>
-
-      {!isBooked && onWhatsAppBook && (
+      {!isBooked && (
         <Button 
-          onClick={onWhatsAppBook}
+          onClick={handleWhatsAppRedirect}
           className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
         >
-          📱 Book via WhatsApp
+          📱 Book This
         </Button>
       )}
     </Card>
