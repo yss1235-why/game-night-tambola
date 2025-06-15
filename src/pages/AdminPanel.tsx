@@ -11,7 +11,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { PrizeType } from '@/types/game';
 import { Trash2, LogOut } from 'lucide-react';
-import NumberGrid from '@/components/NumberGrid';
 import WinnersList from '@/components/WinnersList';
 import CreateHostForm from '@/components/CreateHostForm';
 import HostManagement from '@/components/HostManagement';
@@ -191,44 +190,15 @@ const AdminPanel = () => {
         <Card className="p-6 bg-white/90 backdrop-blur-sm shadow-lg border-gray-200">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold text-gray-800">Admin Panel</h1>
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => navigate('/host')}
-                variant="outline"
-                className="border-gray-300 hover:bg-gray-50"
-              >
-                Host Dashboard
-              </Button>
-              <Button 
-                onClick={() => navigate('/')}
-                variant="outline"
-                className="border-gray-300 hover:bg-gray-50"
-              >
-                Player View
-              </Button>
-              <Button 
-                onClick={handleLogout}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <LogOut size={16} />
-                Logout
-              </Button>
-            </div>
+            <Button 
+              onClick={handleLogout}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <LogOut size={16} />
+              Logout
+            </Button>
           </div>
-
-          {/* Game Status */}
-          {currentGame && (
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-3">Current Game Status</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div><strong>Status:</strong> {currentGame.status}</div>
-                <div><strong>Current Number:</strong> {currentGame.current_number || 'None'}</div>
-                <div><strong>Numbers Called:</strong> {currentGame.numbers_called?.length || 0}/90</div>
-                <div><strong>Total Winners:</strong> {winners.length}</div>
-              </div>
-            </div>
-          )}
 
           {/* Tab Navigation */}
           <div className="flex gap-4 mb-6">
@@ -372,14 +342,6 @@ const AdminPanel = () => {
             <HostManagement />
           )}
         </Card>
-
-        {/* Number Grid */}
-        {currentGame && (currentGame.status === 'active' || currentGame.status === 'paused') && (
-          <NumberGrid 
-            calledNumbers={currentGame.numbers_called || []}
-            currentNumber={currentGame.current_number}
-          />
-        )}
       </div>
     </div>
   );
