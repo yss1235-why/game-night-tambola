@@ -2,22 +2,35 @@
 import React, { useState } from 'react';
 import { useGameData } from '@/hooks/useGameData';
 import GameStatus from '@/components/GameStatus';
-import TicketGrid from '@/components/TicketGrid';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import NumberGrid from '@/components/NumberGrid';
+import WinnersList from '@/components/WinnersList';
+import PlayerTicketView from '@/components/PlayerTicketView';
 
 const PlayerView: React.FC = () => {
   const { currentGame, tickets, bookings, winners, lastGameWinners, isLoading } = useGameData();
-  const [showTicketNumbers, setShowTicketNumbers] = useState(false);
+  const [searchTicketNumber, setSearchTicketNumber] = useState('');
+  const [viewedTickets, setViewedTickets] = useState<number[]>([]);
 
-  const handleWhatsAppBooking = (ticketNumber: number) => {
-    const message = `I want to book ticket number ${ticketNumber}`;
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+  const handleSearchTicket = () => {
+    const ticketNumber = parseInt(searchTicketNumber);
+    if (ticketNumber && !viewedTickets.includes(ticketNumber)) {
+      setViewedTickets(prev => [...prev, ticketNumber]);
+    }
+    setSearchTicketNumber('');
   };
 
-  const getBookingForTicket = (ticketId: number) => {
-    return bookings.find(booking => booking.ticket_id === ticketId);
+  const removeTicketFromView = (ticketNumber: number) => {
+    setViewedTickets(prev => prev.filter(num => num !== ticketNumber));
+  };
+
+  const getBookingsForTicketNumber = (ticketNumber: number) => {
+    const ticket = tickets.find(t => t.ticket_number === ticketNumber);
+    if (!ticket) return [];
+    return bookings.filter(b => b.ticket_id === ticket.id);
   };
 
   if (isLoading) {
@@ -59,32 +72,79 @@ const PlayerView: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto space-y-6">
         <div className="mb-6">
           <GameStatus game={currentGame} winners={winners} />
         </div>
 
-        <div className="mb-4">
-          <Button
-            onClick={() => setShowTicketNumbers(!showTicketNumbers)}
-            variant="outline"
-          >
-            {showTicketNumbers ? 'Hide Numbers' : 'Show Numbers'}
-          </Button>
-        </div>
+        {/* Number Grid */}
+        <NumberGrid 
+          calledNumbers={currentGame?.numbers_called || []}
+          currentNumber={currentGame?.current_number}
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {tickets.map(ticket => (
-            <TicketGrid
-              key={ticket.id}
-              ticket={ticket}
-              booking={getBookingForTicket(ticket.id)}
-              calledNumbers={currentGame?.numbers_called || []}
-              onWhatsAppBook={() => handleWhatsAppBooking(ticket.ticket_number)}
-              showNumbers={showTicketNumbers}
-            />
-          ))}
-        </div>
+        {/* Ticket Search */}
+        <Card className="p-6">
+          <h2 className="text-xl font-semibold mb-4">Search Your Tickets</h2>
+          <div className="flex gap-4 items-end">
+            <div className="flex-1">
+              <Label htmlFor="ticketSearch">Enter Ticket Number</Label>
+              <Input
+                id="ticketSearch"
+                type="number"
+                value={searchTicketNumber}
+                onChange={(e) => setSearchTicketNumber(e.target.value)}
+                placeholder="Enter ticket number..."
+                className="mt-1"
+                onKeyPress={(e) => e.key === 'Enter' && handleSearchTicket()}
+              />
+            </div>
+            <Button onClick={handleSearchTicket} disabled={!searchTicketNumber}>
+              Search Ticket
+            </Button>
+          </div>
+          
+          {viewedTickets.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-lg font-medium mb-2">Searched Tickets:</h3>
+              <div className="flex flex-wrap gap-2">
+                {viewedTickets.map(ticketNumber => (
+                  <div key={ticketNumber} className="flex items-center gap-2 bg-blue-100 px-3 py-1 rounded">
+                    <span>#{ticketNumber}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeTicketFromView(ticketNumber)}
+                      className="h-auto p-1 text-red-500 hover:text-red-700"
+                    >
+                      ×
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+
+        {/* Player Tickets View */}
+        {viewedTickets.length > 0 && (
+          <PlayerTicketView
+            viewedTickets={viewedTickets}
+            tickets={tickets}
+            bookings={bookings}
+            calledNumbers={currentGame?.numbers_called || []}
+            onRemoveTicket={removeTicketFromView}
+          />
+        )}
+
+        {/* Winners List */}
+        {winners.length > 0 && (
+          <WinnersList 
+            winners={winners}
+            tickets={tickets}
+            bookings={bookings}
+          />
+        )}
       </div>
     </div>
   );

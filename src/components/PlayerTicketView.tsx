@@ -1,0 +1,127 @@
+
+import React from 'react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Ticket, Booking } from '@/types/game';
+import { X } from 'lucide-react';
+
+interface PlayerTicketViewProps {
+  viewedTickets: number[];
+  tickets: Ticket[];
+  bookings: Booking[];
+  calledNumbers: number[];
+  onRemoveTicket: (ticketNumber: number) => void;
+}
+
+const PlayerTicketView: React.FC<PlayerTicketViewProps> = ({
+  viewedTickets,
+  tickets,
+  bookings,
+  calledNumbers,
+  onRemoveTicket
+}) => {
+  const getTicketByNumber = (ticketNumber: number) => {
+    return tickets.find(t => t.ticket_number === ticketNumber);
+  };
+
+  const getBookingsForTicket = (ticketId: number) => {
+    return bookings.filter(b => b.ticket_id === ticketId);
+  };
+
+  const renderTicketGrid = (ticket: Ticket, ticketBookings: Booking[]) => {
+    const renderRow = (numbers: number[], rowIndex: number) => {
+      const fullRow = Array(9).fill(null);
+      
+      numbers.forEach(num => {
+        const colIndex = Math.floor(num / 10);
+        if (colIndex < 9) {
+          fullRow[colIndex] = num;
+        }
+      });
+
+      return (
+        <div key={rowIndex} className="grid grid-cols-9 gap-1">
+          {fullRow.map((num, colIndex) => (
+            <div
+              key={colIndex}
+              className={`
+                h-10 w-10 border border-gray-300 flex items-center justify-center text-sm font-medium
+                ${num && calledNumbers.includes(num) ? 'bg-green-500 text-white' : ''}
+                ${num ? 'bg-white' : 'bg-gray-100'}
+              `}
+            >
+              {num || ''}
+            </div>
+          ))}
+        </div>
+      );
+    };
+
+    return (
+      <div className="space-y-2">
+        <div className="space-y-1">
+          {[ticket.row1, ticket.row2, ticket.row3].map((row, index) => 
+            renderRow(row, index)
+          )}
+        </div>
+        
+        {ticketBookings.length > 0 && (
+          <div className="mt-2 text-sm text-gray-600">
+            <strong>Booked by:</strong>
+            {ticketBookings.map((booking, index) => (
+              <div key={booking.id}>
+                {booking.player_name}
+                {booking.player_phone && ` (${booking.player_phone})`}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <Card className="p-6">
+      <h2 className="text-xl font-semibold mb-4">Your Tickets</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {viewedTickets.map(ticketNumber => {
+          const ticket = getTicketByNumber(ticketNumber);
+          const ticketBookings = ticket ? getBookingsForTicket(ticket.id) : [];
+          
+          return (
+            <Card key={ticketNumber} className="p-4 relative">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onRemoveTicket(ticketNumber)}
+                className="absolute top-2 right-2 h-8 w-8 p-0 text-red-500 hover:text-red-700"
+              >
+                <X size={16} />
+              </Button>
+              
+              <div className="mb-3">
+                <h3 className="font-bold text-lg">Ticket #{ticketNumber}</h3>
+                {!ticket && (
+                  <p className="text-sm text-red-500">Ticket not found</p>
+                )}
+                {ticket && ticketBookings.length === 0 && (
+                  <p className="text-sm text-orange-500">Not booked</p>
+                )}
+              </div>
+              
+              {ticket ? (
+                renderTicketGrid(ticket, ticketBookings)
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  <p>Ticket #{ticketNumber} not available</p>
+                </div>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+    </Card>
+  );
+};
+
+export default PlayerTicketView;

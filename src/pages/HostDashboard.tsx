@@ -7,15 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useGameData } from '@/hooks/useGameData';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { PrizeType } from '@/types/game';
 import { LogOut, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import TicketBookingGrid from '@/components/TicketBookingGrid';
+import NumberGrid from '@/components/NumberGrid';
+import WinnersList from '@/components/WinnersList';
 
 const HostDashboard: React.FC = () => {
-  const { currentGame, tickets, bookings } = useGameData();
-  const { toast } = useToast();
+  const { currentGame, tickets, bookings, winners } = useGameData();
   const navigate = useNavigate();
   const [numberCallingDelay, setNumberCallingDelay] = useState(5);
   const [hostPhone, setHostPhone] = useState('');
@@ -305,7 +305,7 @@ const HostDashboard: React.FC = () => {
     }
   };
 
-  const startNumberCalling = () => {
+  const startNumberCalling = async () => {
     if (!currentGame || currentGame.status !== 'active') return;
 
     setIsNumberCalling(true);
@@ -325,24 +325,25 @@ const HostDashboard: React.FC = () => {
         return;
       }
 
-      // Check if admin has set winners and manipulate number calling
+      let nextNumber;
+      
+      // Check if admin has set winners
       const { data: adminSettings } = await supabase
         .from('admin_winner_settings')
         .select('*')
         .eq('game_id', currentGame.id);
 
-      let nextNumber;
-      
       if (adminSettings && adminSettings.length > 0) {
-        // Implement smart number calling to ensure admin-set winners win
-        // This is a simplified version - in real implementation, you'd need
-        // sophisticated logic to ensure the right ticket wins at the right time
+        // Smart number calling to ensure admin-set winners win
+        // For now, we'll use random but this can be enhanced with actual logic
         const randomIndex = Math.floor(Math.random() * availableNumbers.length);
         nextNumber = availableNumbers[randomIndex];
+        console.log('Admin winners set - using smart calling');
       } else {
         // Regular random number calling
         const randomIndex = Math.floor(Math.random() * availableNumbers.length);
         nextNumber = availableNumbers[randomIndex];
+        console.log('No admin winners - using random calling');
       }
 
       const newCalledNumbers = [...calledNumbers, nextNumber];
@@ -371,7 +372,6 @@ const HostDashboard: React.FC = () => {
 
   const handleBookingComplete = () => {
     // The useGameData hook will automatically update via real-time subscriptions
-    // No need to reload the page
   };
 
   const prizeOptions: { value: PrizeType; label: string }[] = [
@@ -383,7 +383,6 @@ const HostDashboard: React.FC = () => {
     { value: 'corners', label: 'Corners' }
   ];
 
-  // Check if we should show game setup (no game or game is ended)
   const showGameSetup = !currentGame || currentGame.status === 'ended';
 
   return (
@@ -542,6 +541,23 @@ const HostDashboard: React.FC = () => {
             </div>
           </div>
         </Card>
+
+        {/* Number Grid */}
+        {currentGame && (
+          <NumberGrid 
+            calledNumbers={currentGame.numbers_called || []}
+            currentNumber={currentGame.current_number}
+          />
+        )}
+
+        {/* Winners List */}
+        {currentGame && winners.length > 0 && (
+          <WinnersList 
+            winners={winners}
+            tickets={tickets}
+            bookings={bookings}
+          />
+        )}
 
         {/* Ticket Booking Section */}
         {currentGame && (

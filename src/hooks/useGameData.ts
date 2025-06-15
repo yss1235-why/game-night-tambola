@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Game, Ticket, Booking, Winner } from '@/types/game';
+import { createDemoTickets } from '@/utils/demoTickets';
 
 export const useGameData = () => {
   const [currentGame, setCurrentGame] = useState<Game | null>(null);
@@ -12,7 +12,7 @@ export const useGameData = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchInitialData();
+    initializeData();
     
     // Setup realtime subscriptions
     const gamesChannel = supabase
@@ -86,6 +86,14 @@ export const useGameData = () => {
     } catch (error) {
       console.error('Error fetching bookings:', error);
     }
+  };
+
+  const initializeData = async () => {
+    // Create demo tickets first
+    await createDemoTickets();
+    
+    // Then fetch all data
+    await fetchInitialData();
   };
 
   const fetchInitialData = async () => {
