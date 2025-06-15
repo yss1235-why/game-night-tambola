@@ -70,12 +70,12 @@ const PlayerTicketView: React.FC<PlayerTicketViewProps> = ({
       });
 
       return (
-        <div key={rowIndex} className="grid grid-cols-9 gap-2">
+        <div key={rowIndex} className="grid grid-cols-9 gap-1">
           {fullRow.map((num, colIndex) => (
             <div
               key={colIndex}
               className={`
-                h-12 w-12 border-2 rounded-lg flex items-center justify-center text-sm font-medium transition-all duration-200
+                h-8 w-8 border-2 rounded-md flex items-center justify-center text-xs font-medium transition-all duration-200
                 ${getNumberStyle(num)}
               `}
             >
@@ -87,8 +87,8 @@ const PlayerTicketView: React.FC<PlayerTicketViewProps> = ({
     };
 
     return (
-      <div className="space-y-3">
-        <div className="space-y-2">
+      <div className="space-y-2">
+        <div className="space-y-1">
           {[ticket.row1, ticket.row2, ticket.row3].map((row, index) => 
             renderRow(row, index)
           )}
