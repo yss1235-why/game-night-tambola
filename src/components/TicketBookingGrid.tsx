@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { Ticket, Booking, Game } from '@/types/game';
 import { X, Edit } from 'lucide-react';
 
@@ -22,7 +22,6 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
   currentGame,
   onBookingComplete
 }) => {
-  const { toast } = useToast();
   const [selectedTickets, setSelectedTickets] = useState<number[]>([]);
   const [playerName, setPlayerName] = useState('');
   const [playerPhone, setPlayerPhone] = useState('');
@@ -36,6 +35,14 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
   // Get booked ticket IDs for quick lookup
   const bookedTicketIds = new Set(bookings.map(b => b.ticket_id));
 
+  // Create a map of ticket numbers to bookings for quick lookup
+  const bookedTicketNumbers = new Set(
+    bookings.map(booking => {
+      const ticket = tickets.find(t => t.id === booking.ticket_id);
+      return ticket?.ticket_number;
+    }).filter(Boolean)
+  );
+
   // Filter tickets based on max_tickets setting
   const maxTickets = currentGame.max_tickets || 100;
 
@@ -46,8 +53,9 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
   useEffect(() => {
     console.log('TicketBookingGrid - maxTickets:', maxTickets);
     console.log('TicketBookingGrid - total tickets:', tickets.length);
+    console.log('TicketBookingGrid - bookedTicketNumbers:', Array.from(bookedTicketNumbers));
     console.log('TicketBookingGrid - will display tickets 1 to:', maxTickets);
-  }, [maxTickets, tickets]);
+  }, [maxTickets, tickets, bookedTicketNumbers]);
 
   // Create rows with exactly 10 tickets per row, showing all numbers from 1 to maxTickets
   const createTicketRows = () => {
@@ -81,15 +89,17 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
   const handleTicketClick = (ticketNumber: number) => {
     console.log('Ticket clicked:', ticketNumber);
     
+    // Check if this ticket number is already booked
+    if (bookedTicketNumbers.has(ticketNumber)) {
+      console.log('Ticket number already booked:', ticketNumber);
+      return; // Prevent selecting booked tickets
+    }
+    
     // Find the actual ticket ID for this ticket number
     const ticket = ticketMap.get(ticketNumber);
     if (!ticket) {
       // For tickets that don't exist in the database yet, we need to create them first
       console.log(`Ticket ${ticketNumber} does not exist, need to create it first`);
-      toast({
-        title: "Info",
-        description: `Ticket ${ticketNumber} will be created when you book it`,
-      });
       
       // Create a temporary ID for selection (negative to distinguish from real IDs)
       const tempId = -ticketNumber;
@@ -124,11 +134,6 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
 
   const handleUpdateBooking = async () => {
     if (!editingBooking || !editPlayerName.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter player name",
-        variant: "destructive"
-      });
       return;
     }
 
@@ -145,11 +150,6 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Booking updated successfully",
-      });
-
       setIsEditDialogOpen(false);
       setEditingBooking(null);
       setEditPlayerName('');
@@ -158,11 +158,6 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
 
     } catch (error) {
       console.error('Error updating booking:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update booking. Please try again.",
-        variant: "destructive"
-      });
     } finally {
       setIsSubmitting(false);
     }
@@ -170,11 +165,6 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
 
   const handleBookTickets = async () => {
     if (!playerName.trim() || selectedTickets.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please enter player name and select at least one ticket",
-        variant: "destructive"
-      });
       return;
     }
 
@@ -188,6 +178,11 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
         if (ticketId < 0) {
           const ticketNumber = -ticketId;
           console.log('Creating ticket for number:', ticketNumber);
+          
+          // Check if this ticket number is already booked before creating
+          if (bookedTicketNumbers.has(ticketNumber)) {
+            throw new Error(`Ticket ${ticketNumber} is already booked`);
+          }
           
           // Create the ticket first
           const { data: newTicket, error: ticketError } = await supabase
@@ -204,6 +199,12 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
             
           if (ticketError) throw ticketError;
           realTicketId = newTicket.id;
+        } else {
+          // For existing tickets, double-check they're not already booked
+          if (bookedTicketIds.has(ticketId)) {
+            const ticket = tickets.find(t => t.id === ticketId);
+            throw new Error(`Ticket ${ticket?.ticket_number} is already booked`);
+          }
         }
         
         // Create the booking
@@ -226,11 +227,6 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
         throw new Error('Some bookings failed');
       }
 
-      toast({
-        title: "Success",
-        description: `Successfully booked ${selectedTickets.length} ticket(s) for ${playerName}`,
-      });
-
       // Reset form
       setSelectedTickets([]);
       setPlayerName('');
@@ -240,11 +236,6 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
 
     } catch (error) {
       console.error('Error booking tickets:', error);
-      toast({
-        title: "Error",
-        description: "Failed to book tickets. Please try again.",
-        variant: "destructive"
-      });
     } finally {
       setIsSubmitting(false);
     }
@@ -255,6 +246,11 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
   };
 
   const getTicketStatus = (ticketNumber: number) => {
+    // Check if this ticket number is booked
+    if (bookedTicketNumbers.has(ticketNumber)) {
+      return 'booked';
+    }
+    
     const ticket = ticketMap.get(ticketNumber);
     if (!ticket) {
       // Check if it's selected as a temporary ticket
