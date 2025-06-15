@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -57,13 +58,34 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
     return numberA - numberB;
   });
 
-  // Debug logging
+  // Debug logging - enhanced for real-time tracking
   useEffect(() => {
+    console.log('TicketBookingGrid - Real-time update detected');
     console.log('TicketBookingGrid - maxTickets:', maxTickets);
     console.log('TicketBookingGrid - total tickets:', tickets.length);
+    console.log('TicketBookingGrid - total bookings:', bookings.length);
     console.log('TicketBookingGrid - bookedTicketNumbers:', Array.from(bookedTicketNumbers));
     console.log('TicketBookingGrid - will display tickets 1 to:', maxTickets);
-  }, [maxTickets, tickets, bookedTicketNumbers]);
+  }, [maxTickets, tickets, bookings, bookedTicketNumbers]);
+
+  // Clear selection when bookings change to avoid UI inconsistencies
+  useEffect(() => {
+    const invalidSelections = selectedTickets.filter(ticketId => {
+      if (ticketId < 0) {
+        // Temporary ticket - check if ticket number is now booked
+        const ticketNumber = -ticketId;
+        return bookedTicketNumbers.has(ticketNumber);
+      } else {
+        // Real ticket - check if it's now booked
+        return bookedTicketIds.has(ticketId);
+      }
+    });
+
+    if (invalidSelections.length > 0) {
+      console.log('Clearing invalid selections due to real-time booking updates:', invalidSelections);
+      setSelectedTickets(prev => prev.filter(id => !invalidSelections.includes(id)));
+    }
+  }, [bookedTicketIds, bookedTicketNumbers, selectedTickets]);
 
   // Create rows with exactly 10 tickets per row, showing all numbers from 1 to maxTickets
   const createTicketRows = () => {
@@ -148,6 +170,7 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
     setIsSubmitting(true);
 
     try {
+      console.log('Updating booking:', editingBooking.id);
       const { error } = await supabase
         .from('bookings')
         .update({
@@ -158,6 +181,7 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
 
       if (error) throw error;
 
+      console.log('Booking updated successfully');
       setIsEditDialogOpen(false);
       setEditingBooking(null);
       setEditPlayerName('');
@@ -177,6 +201,7 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
     }
 
     setIsSubmitting(true);
+    console.log('Starting ticket booking process for:', selectedTickets);
 
     try {
       const bookingPromises = selectedTickets.map(async (ticketId) => {
@@ -207,6 +232,7 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
             
           if (ticketError) throw ticketError;
           realTicketId = newTicket.id;
+          console.log('Created new ticket:', newTicket);
         } else {
           // For existing tickets, double-check they're not already booked
           if (bookedTicketIds.has(ticketId)) {
@@ -216,14 +242,21 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
         }
         
         // Create the booking
-        return supabase
+        console.log('Creating booking for ticket ID:', realTicketId);
+        const bookingResult = await supabase
           .from('bookings')
           .insert({
             game_id: currentGame.id,
             ticket_id: realTicketId,
             player_name: playerName,
             player_phone: playerPhone || null
-          });
+          })
+          .select()
+          .single();
+          
+        if (bookingResult.error) throw bookingResult.error;
+        console.log('Created booking:', bookingResult.data);
+        return bookingResult;
       });
 
       const results = await Promise.all(bookingPromises);
@@ -235,6 +268,8 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
         throw new Error('Some bookings failed');
       }
 
+      console.log('All bookings completed successfully');
+      
       // Reset form
       setSelectedTickets([]);
       setPlayerName('');

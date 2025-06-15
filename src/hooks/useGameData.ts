@@ -47,10 +47,19 @@ export const useGameData = () => {
       }, (payload) => {
         console.log('Tickets change:', payload);
         if (payload.eventType === 'INSERT') {
-          setTickets(prev => [...prev, payload.new as Ticket]);
+          const newTicket = payload.new as Ticket;
+          console.log('Adding new ticket:', newTicket);
+          setTickets(prev => {
+            // Check if ticket already exists to avoid duplicates
+            const exists = prev.some(t => t.id === newTicket.id);
+            if (exists) return prev;
+            return [...prev, newTicket];
+          });
         } else if (payload.eventType === 'UPDATE') {
+          const updatedTicket = payload.new as Ticket;
+          console.log('Updating ticket:', updatedTicket);
           setTickets(prev => prev.map(ticket => 
-            ticket.id === payload.new.id ? payload.new as Ticket : ticket
+            ticket.id === updatedTicket.id ? updatedTicket : ticket
           ));
         }
       })
@@ -65,13 +74,24 @@ export const useGameData = () => {
       }, (payload) => {
         console.log('Bookings change:', payload);
         if (payload.eventType === 'INSERT') {
-          setBookings(prev => [...prev, payload.new as Booking]);
+          const newBooking = payload.new as Booking;
+          console.log('Adding new booking:', newBooking);
+          setBookings(prev => {
+            // Check if booking already exists to avoid duplicates
+            const exists = prev.some(b => b.id === newBooking.id);
+            if (exists) return prev;
+            return [...prev, newBooking];
+          });
         } else if (payload.eventType === 'UPDATE') {
+          const updatedBooking = payload.new as Booking;
+          console.log('Updating booking:', updatedBooking);
           setBookings(prev => prev.map(booking => 
-            booking.id === payload.new.id ? payload.new as Booking : booking
+            booking.id === updatedBooking.id ? updatedBooking : booking
           ));
         } else if (payload.eventType === 'DELETE') {
-          setBookings(prev => prev.filter(booking => booking.id !== payload.old.id));
+          const deletedBooking = payload.old as Booking;
+          console.log('Deleting booking:', deletedBooking);
+          setBookings(prev => prev.filter(booking => booking.id !== deletedBooking.id));
         }
       })
       .subscribe();
@@ -85,19 +105,31 @@ export const useGameData = () => {
       }, (payload) => {
         console.log('Winners change:', payload);
         if (payload.eventType === 'INSERT') {
-          setWinners(prev => [...prev, payload.new as Winner]);
+          const newWinner = payload.new as Winner;
+          console.log('Adding new winner:', newWinner);
+          setWinners(prev => {
+            // Check if winner already exists to avoid duplicates
+            const exists = prev.some(w => w.id === newWinner.id);
+            if (exists) return prev;
+            return [...prev, newWinner];
+          });
         } else if (payload.eventType === 'UPDATE') {
+          const updatedWinner = payload.new as Winner;
+          console.log('Updating winner:', updatedWinner);
           setWinners(prev => prev.map(winner => 
-            winner.id === payload.new.id ? payload.new as Winner : winner
+            winner.id === updatedWinner.id ? updatedWinner : winner
           ));
         } else if (payload.eventType === 'DELETE') {
-          setWinners(prev => prev.filter(winner => winner.id !== payload.old.id));
+          const deletedWinner = payload.old as Winner;
+          console.log('Deleting winner:', deletedWinner);
+          setWinners(prev => prev.filter(winner => winner.id !== deletedWinner.id));
         }
       })
       .subscribe();
 
     // Cleanup function
     return () => {
+      console.log('Cleaning up real-time subscriptions');
       supabase.removeChannel(gamesChannel);
       supabase.removeChannel(ticketsChannel);
       supabase.removeChannel(bookingsChannel);
@@ -107,10 +139,12 @@ export const useGameData = () => {
 
   const fetchBookingsForGame = async (gameId: string) => {
     try {
+      console.log('Fetching bookings for game:', gameId);
       const { data: gameBookings } = await supabase
         .from('bookings')
         .select('*')
         .eq('game_id', gameId);
+      console.log('Fetched bookings:', gameBookings);
       setBookings(gameBookings || []);
     } catch (error) {
       console.error('Error fetching bookings:', error);
@@ -173,12 +207,20 @@ export const useGameData = () => {
     }
   };
 
+  // Add a manual refresh function for troubleshooting
+  const refreshData = async () => {
+    if (currentGame) {
+      await fetchBookingsForGame(currentGame.id);
+    }
+  };
+
   return {
     currentGame,
     tickets,
     bookings,
     winners,
     lastGameWinners,
-    isLoading
+    isLoading,
+    refreshData
   };
 };
