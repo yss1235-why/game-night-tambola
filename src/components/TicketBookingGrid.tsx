@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,6 +47,15 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
 
   // Create a map of existing tickets for quick lookup
   const ticketMap = new Map(tickets.map(ticket => [ticket.ticket_number, ticket]));
+
+  // Sort bookings by ticket number in ascending order
+  const sortedBookings = [...bookings].sort((a, b) => {
+    const ticketA = tickets.find(t => t.id === a.ticket_id);
+    const ticketB = tickets.find(t => t.id === b.ticket_id);
+    const numberA = ticketA?.ticket_number || 0;
+    const numberB = ticketB?.ticket_number || 0;
+    return numberA - numberB;
+  });
 
   // Debug logging
   useEffect(() => {
@@ -391,8 +399,8 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
       <Card className="p-6">
         <h2 className="text-xl font-semibold mb-4">Bookings ({bookings.length})</h2>
         <div className="space-y-2 max-h-64 overflow-y-auto">
-          {bookings.length > 0 ? (
-            bookings.map(booking => {
+          {sortedBookings.length > 0 ? (
+            sortedBookings.map(booking => {
               const ticket = tickets.find(t => t.id === booking.ticket_id);
               return (
                 <div key={booking.id} className="flex justify-between items-center p-3 bg-gray-100 rounded">
