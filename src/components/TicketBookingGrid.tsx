@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,20 +38,20 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
 
   // Filter tickets based on max_tickets setting
   const maxTickets = currentGame.max_tickets || 100;
-  const availableTickets = tickets.filter(ticket => ticket.ticket_number <= maxTickets);
+
+  // Create a map of existing tickets for quick lookup
+  const ticketMap = new Map(tickets.map(ticket => [ticket.ticket_number, ticket]));
 
   // Debug logging
   useEffect(() => {
     console.log('TicketBookingGrid - maxTickets:', maxTickets);
     console.log('TicketBookingGrid - total tickets:', tickets.length);
-    console.log('TicketBookingGrid - available tickets:', availableTickets.length);
-    console.log('TicketBookingGrid - available ticket numbers:', availableTickets.map(t => t.ticket_number));
-  }, [maxTickets, tickets, availableTickets]);
+    console.log('TicketBookingGrid - will display tickets 1 to:', maxTickets);
+  }, [maxTickets, tickets]);
 
-  // Create rows with exactly 10 tickets per row
+  // Create rows with exactly 10 tickets per row, showing all numbers from 1 to maxTickets
   const createTicketRows = () => {
-    const rows: Ticket[][] = [];
-    const ticketMap = new Map(availableTickets.map(ticket => [ticket.ticket_number, ticket]));
+    const rows: { ticketNumber: number; ticket?: Ticket }[][] = [];
     
     // Calculate number of rows needed (each row has 10 tickets)
     const numRows = Math.ceil(maxTickets / 10);
@@ -60,14 +59,12 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
     console.log('Creating ticket rows - numRows:', numRows, 'maxTickets:', maxTickets);
     
     for (let row = 0; row < numRows; row++) {
-      const rowTickets: Ticket[] = [];
+      const rowTickets: { ticketNumber: number; ticket?: Ticket }[] = [];
       for (let col = 1; col <= 10; col++) {
         const ticketNumber = row * 10 + col;
         if (ticketNumber <= maxTickets) {
           const ticket = ticketMap.get(ticketNumber);
-          if (ticket) {
-            rowTickets.push(ticket);
-          }
+          rowTickets.push({ ticketNumber, ticket });
         }
       }
       if (rowTickets.length > 0) {
@@ -75,13 +72,25 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
       }
     }
     
-    console.log('Created ticket rows:', rows.length, 'with tickets:', rows.map(row => row.length));
+    console.log('Created ticket rows:', rows.length, 'with tickets per row:', rows.map(row => row.length));
     return rows;
   };
 
   const ticketRows = createTicketRows();
 
-  const handleTicketClick = (ticketId: number) => {
+  const handleTicketClick = (ticketNumber: number) => {
+    // Find the actual ticket ID for this ticket number
+    const ticket = ticketMap.get(ticketNumber);
+    if (!ticket) {
+      toast({
+        title: "Error",
+        description: `Ticket ${ticketNumber} does not exist in the system`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const ticketId = ticket.id;
     if (bookedTicketIds.has(ticketId)) return; // Can't select booked tickets
 
     setSelectedTickets(prev => 
@@ -91,7 +100,7 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
     );
   };
 
-  const handleEditBooking = (booking: Booking) => {
+  const handleEditBooking = async (booking: Booking) => {
     setEditingBooking(booking);
     setEditPlayerName(booking.player_name);
     setEditPlayerPhone(booking.player_phone || '');
@@ -205,9 +214,12 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
     setSelectedTickets([]);
   };
 
-  const getTicketStatus = (ticketId: number) => {
-    if (bookedTicketIds.has(ticketId)) return 'booked';
-    if (selectedTickets.includes(ticketId)) return 'selected';
+  const getTicketStatus = (ticketNumber: number) => {
+    const ticket = ticketMap.get(ticketNumber);
+    if (!ticket) return 'unavailable';
+    
+    if (bookedTicketIds.has(ticket.id)) return 'booked';
+    if (selectedTickets.includes(ticket.id)) return 'selected';
     return 'available';
   };
 
@@ -217,6 +229,8 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
         return 'bg-red-200 border-red-400 cursor-not-allowed opacity-60';
       case 'selected':
         return 'bg-blue-200 border-blue-400 cursor-pointer';
+      case 'unavailable':
+        return 'bg-gray-200 border-gray-300 cursor-not-allowed opacity-40';
       default:
         return 'bg-green-100 border-green-300 hover:bg-green-200 cursor-pointer';
     }
@@ -267,7 +281,10 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
                       />
                     </div>
                     <div className="text-sm text-gray-600">
-                      Selected tickets: {selectedTickets.join(', ')}
+                      Selected tickets: {selectedTickets.map(ticketId => {
+                        const ticket = tickets.find(t => t.id === ticketId);
+                        return ticket?.ticket_number;
+                      }).join(', ')}
                     </div>
                     <div className="flex gap-2">
                       <Button 
@@ -299,23 +316,28 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
                 Tickets {rowIndex * 10 + 1}-{Math.min((rowIndex + 1) * 10, maxTickets)}
               </h3>
               <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-                {row.map(ticket => {
-                  const status = getTicketStatus(ticket.id);
-                  const booking = bookings.find(b => b.ticket_id === ticket.id);
+                {row.map(({ ticketNumber, ticket }) => {
+                  const status = getTicketStatus(ticketNumber);
+                  const booking = ticket ? bookings.find(b => b.ticket_id === ticket.id) : null;
                   
                   return (
-                    <div key={ticket.id}>
+                    <div key={ticketNumber}>
                       <div
-                        onClick={() => handleTicketClick(ticket.id)}
+                        onClick={() => ticket && handleTicketClick(ticketNumber)}
                         className={`
                           p-2 border rounded text-center text-sm transition-colors min-h-[48px] flex flex-col justify-center
                           ${getTicketStyles(status)}
                         `}
                       >
-                        <div className="font-medium">{ticket.ticket_number}</div>
+                        <div className="font-medium">{ticketNumber}</div>
                         {booking && (
                           <div className="text-xs text-gray-600 mt-1 truncate">
                             {booking.player_name}
+                          </div>
+                        )}
+                        {!ticket && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            N/A
                           </div>
                         )}
                       </div>
@@ -340,6 +362,10 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
             <div className="w-4 h-4 bg-red-200 border border-red-400 rounded"></div>
             <span>Booked</span>
           </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-gray-200 border border-gray-300 rounded"></div>
+            <span>Not Available</span>
+          </div>
         </div>
       </Card>
 
@@ -347,24 +373,27 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
         <h2 className="text-xl font-semibold mb-4">Bookings ({bookings.length})</h2>
         <div className="space-y-2 max-h-64 overflow-y-auto">
           {bookings.length > 0 ? (
-            bookings.map(booking => (
-              <div key={booking.id} className="flex justify-between items-center p-3 bg-gray-100 rounded">
-                <div className="flex-1">
-                  <span className="font-medium">Ticket {booking.ticket_id}</span>
-                  <span className="ml-4">{booking.player_name}</span>
-                  <span className="ml-4 text-gray-600">{booking.player_phone}</span>
+            bookings.map(booking => {
+              const ticket = tickets.find(t => t.id === booking.ticket_id);
+              return (
+                <div key={booking.id} className="flex justify-between items-center p-3 bg-gray-100 rounded">
+                  <div className="flex-1">
+                    <span className="font-medium">Ticket {ticket?.ticket_number || booking.ticket_id}</span>
+                    <span className="ml-4">{booking.player_name}</span>
+                    <span className="ml-4 text-gray-600">{booking.player_phone}</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEditBooking(booking)}
+                    className="flex items-center gap-1"
+                  >
+                    <Edit size={14} />
+                    Edit
+                  </Button>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleEditBooking(booking)}
-                  className="flex items-center gap-1"
-                >
-                  <Edit size={14} />
-                  Edit
-                </Button>
-              </div>
-            ))
+              );
+            })
           ) : (
             <p className="text-gray-500">No bookings yet</p>
           )}
@@ -375,7 +404,7 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Booking - Ticket {editingBooking?.ticket_id}</DialogTitle>
+            <DialogTitle>Edit Booking - Ticket {editingBooking && tickets.find(t => t.id === editingBooking.ticket_id)?.ticket_number}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
