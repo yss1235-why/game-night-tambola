@@ -36,22 +36,27 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
   // Get booked ticket IDs for quick lookup
   const bookedTicketIds = new Set(bookings.map(b => b.ticket_id));
 
+  // Filter tickets based on max_tickets setting
+  const maxTickets = currentGame.max_tickets || 100;
+  const availableTickets = tickets.filter(ticket => ticket.ticket_number <= maxTickets);
+
   // Create rows with exactly 10 tickets per row
   const createTicketRows = () => {
     const rows: Ticket[][] = [];
-    const ticketMap = new Map(tickets.map(ticket => [ticket.ticket_number, ticket]));
+    const ticketMap = new Map(availableTickets.map(ticket => [ticket.ticket_number, ticket]));
     
     // Calculate number of rows needed (each row has 10 tickets)
-    const maxTicketNumber = Math.max(...tickets.map(t => t.ticket_number), 0);
-    const numRows = Math.ceil(maxTicketNumber / 10);
+    const numRows = Math.ceil(maxTickets / 10);
     
     for (let row = 0; row < numRows; row++) {
       const rowTickets: Ticket[] = [];
       for (let col = 1; col <= 10; col++) {
         const ticketNumber = row * 10 + col;
-        const ticket = ticketMap.get(ticketNumber);
-        if (ticket) {
-          rowTickets.push(ticket);
+        if (ticketNumber <= maxTickets) {
+          const ticket = ticketMap.get(ticketNumber);
+          if (ticket) {
+            rowTickets.push(ticket);
+          }
         }
       }
       if (rowTickets.length > 0) {
@@ -209,7 +214,7 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
     <>
       <Card className="p-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Ticket Booking</h2>
+          <h2 className="text-xl font-semibold">Ticket Booking (Max: {maxTickets} tickets)</h2>
           {selectedTickets.length > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600">
@@ -279,7 +284,7 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
           {ticketRows.map((row, rowIndex) => (
             <div key={rowIndex} className="space-y-2">
               <h3 className="text-sm font-medium text-gray-600 text-center">
-                Tickets {rowIndex * 10 + 1}-{(rowIndex + 1) * 10}
+                Tickets {rowIndex * 10 + 1}-{Math.min((rowIndex + 1) * 10, maxTickets)}
               </h3>
               <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
                 {row.map(ticket => {

@@ -546,7 +546,7 @@ const HostDashboard: React.FC = () => {
         {/* Ticket Booking Section */}
         {currentGame && (
           <TicketBookingGrid
-            tickets={tickets.slice(0, currentGame.max_tickets || 100)}
+            tickets={tickets}
             bookings={bookings}
             currentGame={currentGame}
             onBookingComplete={handleBookingComplete}
