@@ -42,16 +42,16 @@ const CreateHostForm: React.FC<CreateHostFormProps> = ({ onHostCreated }) => {
 
       if (authError) throw authError;
 
-      // Create host record
+      // Create host record - fix: remove array wrapper and convert Date to string
       const { error: hostError } = await supabase
         .from('hosts')
-        .insert([{
+        .insert({
           id: authData.user.id,
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
-          subscription_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
-        }]);
+          subscription_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        });
 
       if (hostError) throw hostError;
 
