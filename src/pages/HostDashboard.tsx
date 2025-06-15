@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,13 +23,13 @@ const HostDashboard: React.FC = () => {
   const [numberCallingDelay, setNumberCallingDelay] = useState('');
   const [hostPhone, setHostPhone] = useState('');
   const [selectedTicketSet, setSelectedTicketSet] = useState('demo-set-1');
-  const [selectedPrizes, setSelectedPrizes] = useState<PrizeType[]>(['first_line', 'full_house']);
+  const [selectedPrizes, setSelectedPrizes] = useState<PrizeType[]>(['top_line', 'full_house']);
   const [maxTickets, setMaxTickets] = useState('');
   const [isNumberCalling, setIsNumberCalling] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editDelay, setEditDelay] = useState('');
   const [editTicketSet, setEditTicketSet] = useState('demo-set-1');
-  const [editPrizes, setEditPrizes] = useState<PrizeType[]>(['first_line', 'full_house']);
+  const [editPrizes, setEditPrizes] = useState<PrizeType[]>(['top_line', 'full_house']);
   const [editHostPhone, setEditHostPhone] = useState('');
   const [editMaxTickets, setEditMaxTickets] = useState('');
   const [currentHostData, setCurrentHostData] = useState<any>(null);
@@ -43,7 +44,7 @@ const HostDashboard: React.FC = () => {
         const settings = JSON.parse(savedSettings);
         setNumberCallingDelay(settings.numberCallingDelay?.toString() || '5');
         setSelectedTicketSet(settings.selectedTicketSet || 'demo-set-1');
-        setSelectedPrizes(settings.selectedPrizes || ['first_line', 'full_house']);
+        setSelectedPrizes(settings.selectedPrizes || ['top_line', 'full_house']);
         setMaxTickets(settings.maxTickets?.toString() || '100');
         console.log('Loaded saved game settings:', settings);
       } else {
@@ -188,7 +189,7 @@ const HostDashboard: React.FC = () => {
     if (currentGame) {
       setEditDelay((currentGame.number_calling_delay || 5).toString());
       setEditTicketSet(currentGame.ticket_set || 'demo-set-1');
-      setEditPrizes((currentGame.selected_prizes as PrizeType[]) || ['first_line', 'full_house']);
+      setEditPrizes((currentGame.selected_prizes as PrizeType[]) || ['top_line', 'full_house']);
       // Use host phone from current host data if available, otherwise use game phone
       setEditHostPhone(currentGame.host_phone || currentHostData?.phone || '');
       setEditMaxTickets((currentGame.max_tickets || 100).toString());

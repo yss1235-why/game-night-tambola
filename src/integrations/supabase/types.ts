@@ -257,9 +257,9 @@ export type Database = {
     Enums: {
       game_status: "waiting" | "active" | "paused" | "ended"
       prize_type:
-        | "first_line"
-        | "second_line"
-        | "third_line"
+        | "top_line"
+        | "middle_line"
+        | "bottom_line"
         | "full_house"
         | "early_five"
         | "corners"
@@ -383,9 +383,9 @@ export const Constants = {
     Enums: {
       game_status: ["waiting", "active", "paused", "ended"],
       prize_type: [
-        "first_line",
-        "second_line",
-        "third_line",
+        "top_line",
+        "middle_line",
+        "bottom_line",
         "full_house",
         "early_five",
         "corners",
