@@ -265,6 +265,9 @@ export type Database = {
         | "corners"
         | "half_sheet"
         | "full_sheet"
+        | "quick_five"
+        | "star_corners"
+        | "second_full_house"
       user_role: "host" | "admin"
     }
     CompositeTypes: {
@@ -391,6 +394,9 @@ export const Constants = {
         "corners",
         "half_sheet",
         "full_sheet",
+        "quick_five",
+        "star_corners",
+        "second_full_house",
       ],
       user_role: ["host", "admin"],
     },
