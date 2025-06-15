@@ -30,7 +30,43 @@ const HostDashboard: React.FC = () => {
   const [editPrizes, setEditPrizes] = useState<PrizeType[]>(['first_line', 'full_house']);
   const [editHostPhone, setEditHostPhone] = useState('');
   const [editMaxTickets, setEditMaxTickets] = useState(100);
+  const [currentHostData, setCurrentHostData] = useState<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+
+  // Fetch current host data and auto-fill phone number
+  useEffect(() => {
+    const fetchCurrentHost = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: hostData, error } = await supabase
+            .from('hosts')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+          if (error) {
+            console.error('Error fetching host data:', error);
+            return;
+          }
+
+          if (hostData) {
+            console.log('Current host data:', hostData);
+            setCurrentHostData(hostData);
+            // Auto-fill the phone number from host record
+            if (hostData.phone) {
+              setHostPhone(hostData.phone);
+              setEditHostPhone(hostData.phone);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching current host:', error);
+      }
+    };
+
+    fetchCurrentHost();
+  }, []);
 
   // Initialize audio context
   useEffect(() => {
@@ -100,10 +136,11 @@ const HostDashboard: React.FC = () => {
       setEditDelay(currentGame.number_calling_delay || 5);
       setEditTicketSet(currentGame.ticket_set || 'demo-set-1');
       setEditPrizes((currentGame.selected_prizes as PrizeType[]) || ['first_line', 'full_house']);
-      setEditHostPhone(currentGame.host_phone || '');
+      // Use host phone from current host data if available, otherwise use game phone
+      setEditHostPhone(currentGame.host_phone || currentHostData?.phone || '');
       setEditMaxTickets(currentGame.max_tickets || 100);
     }
-  }, [currentGame]);
+  }, [currentGame, currentHostData]);
 
   const handleLogout = async () => {
     try {
@@ -209,7 +246,10 @@ const HostDashboard: React.FC = () => {
   };
 
   const createNewGame = async () => {
-    if (!hostPhone.trim()) {
+    // Use the phone from current host data if hostPhone is empty
+    const phoneToUse = hostPhone || currentHostData?.phone || '';
+    
+    if (!phoneToUse.trim()) {
       toast({
         title: "Error",
         description: "Please enter a WhatsApp phone number",
@@ -237,30 +277,19 @@ const HostDashboard: React.FC = () => {
     }
 
     try {
-      // First, create a host record
-      const { data: hostData, error: hostError } = await supabase
-        .from('hosts')
-        .insert([{
-          email: 'temp@example.com', // Temporary email until proper auth
-          name: 'Host', // Temporary name
-          phone: hostPhone
-        }])
-        .select()
-        .single();
-
-      if (hostError) {
-        console.error('Error creating host:', hostError);
-        throw hostError;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('No authenticated user found');
       }
 
-      // Then create the game with the host_id
+      // Create the game with the current host's ID
       const { data, error } = await supabase
         .from('games')
         .insert([{
-          host_id: hostData.id,
+          host_id: user.id,
           status: 'waiting',
           number_calling_delay: numberCallingDelay,
-          host_phone: hostPhone,
+          host_phone: phoneToUse,
           ticket_set: selectedTicketSet,
           selected_prizes: selectedPrizes as string[],
           max_tickets: maxTickets
@@ -275,12 +304,12 @@ const HostDashboard: React.FC = () => {
         description: "New game created successfully!"
       });
 
-      // Reset form
-      setHostPhone('');
+      // Reset form but keep the phone number from host data
       setSelectedPrizes(['first_line', 'full_house']);
       setSelectedTicketSet('demo-set-1');
       setNumberCallingDelay(5);
       setMaxTickets(100);
+      // Keep the host phone as it should remain the same
     } catch (error) {
       console.error('Error creating game:', error);
       toast({
@@ -548,6 +577,11 @@ const HostDashboard: React.FC = () => {
                       onChange={(e) => setHostPhone(e.target.value)}
                       className="mt-1"
                     />
+                    {currentHostData?.phone && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        Auto-filled from your host profile: {currentHostData.phone}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -706,6 +740,11 @@ const HostDashboard: React.FC = () => {
                   onChange={(e) => setEditHostPhone(e.target.value)}
                   className="mt-1"
                 />
+                {currentHostData?.phone && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Host profile phone: {currentHostData.phone}
+                  </p>
+                )}
               </div>
 
               <div>
