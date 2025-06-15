@@ -315,7 +315,7 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
               <h3 className="text-sm font-medium text-gray-600 text-center">
                 Tickets {rowIndex * 10 + 1}-{Math.min((rowIndex + 1) * 10, maxTickets)}
               </h3>
-              <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+              <div className="grid grid-cols-10 gap-2">
                 {row.map(({ ticketNumber, ticket }) => {
                   const status = getTicketStatus(ticketNumber);
                   const booking = ticket ? bookings.find(b => b.ticket_id === ticket.id) : null;
