@@ -33,6 +33,38 @@ const HostDashboard: React.FC = () => {
   const [currentHostData, setCurrentHostData] = useState<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
+  // Load saved game settings from localStorage
+  const loadSavedGameSettings = () => {
+    try {
+      const savedSettings = localStorage.getItem('hostGameSettings');
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        setNumberCallingDelay(settings.numberCallingDelay || 5);
+        setSelectedTicketSet(settings.selectedTicketSet || 'demo-set-1');
+        setSelectedPrizes(settings.selectedPrizes || ['first_line', 'full_house']);
+        setMaxTickets(settings.maxTickets || 100);
+        console.log('Loaded saved game settings:', settings);
+      }
+    } catch (error) {
+      console.error('Error loading saved game settings:', error);
+    }
+  };
+
+  // Save game settings to localStorage
+  const saveGameSettings = (settings: {
+    numberCallingDelay: number;
+    selectedTicketSet: string;
+    selectedPrizes: PrizeType[];
+    maxTickets: number;
+  }) => {
+    try {
+      localStorage.setItem('hostGameSettings', JSON.stringify(settings));
+      console.log('Saved game settings:', settings);
+    } catch (error) {
+      console.error('Error saving game settings:', error);
+    }
+  };
+
   // Fetch current host data and auto-fill phone number
   useEffect(() => {
     const fetchCurrentHost = async () => {
@@ -58,6 +90,9 @@ const HostDashboard: React.FC = () => {
               setHostPhone(hostData.phone);
               setEditHostPhone(hostData.phone);
             }
+            
+            // Load saved game settings after host data is loaded
+            loadSavedGameSettings();
           }
         }
       } catch (error) {
@@ -164,11 +199,19 @@ const HostDashboard: React.FC = () => {
   };
 
   const handlePrizeToggle = (prize: PrizeType) => {
-    setSelectedPrizes(prev => 
-      prev.includes(prize) 
-        ? prev.filter(p => p !== prize)
-        : [...prev, prize]
-    );
+    const newPrizes = selectedPrizes.includes(prize) 
+      ? selectedPrizes.filter(p => p !== prize)
+      : [...selectedPrizes, prize];
+    
+    setSelectedPrizes(newPrizes);
+    
+    // Save settings when prizes change
+    saveGameSettings({
+      numberCallingDelay,
+      selectedTicketSet,
+      selectedPrizes: newPrizes,
+      maxTickets
+    });
   };
 
   const handleEditPrizeToggle = (prize: PrizeType) => {
@@ -286,6 +329,14 @@ const HostDashboard: React.FC = () => {
         throw new Error('No authenticated user found');
       }
 
+      // Save current settings before creating the game
+      saveGameSettings({
+        numberCallingDelay: numberCallingDelay || 5,
+        selectedTicketSet,
+        selectedPrizes,
+        maxTickets: validMaxTickets
+      });
+
       // Create the game with the current host's ID
       const { data, error } = await supabase
         .from('games')
@@ -308,12 +359,8 @@ const HostDashboard: React.FC = () => {
         description: "New game created successfully!"
       });
 
-      // Reset form but keep the phone number from host data
-      setSelectedPrizes(['first_line', 'full_house']);
-      setSelectedTicketSet('demo-set-1');
-      setNumberCallingDelay(5);
-      setMaxTickets(100);
-      // Keep the host phone as it should remain the same
+      // Note: We don't reset the settings anymore as they should persist for the next game
+      // Only keep the host phone as it should remain the same
     } catch (error) {
       console.error('Error creating game:', error);
       toast({
@@ -549,6 +596,39 @@ const HostDashboard: React.FC = () => {
     }
   };
 
+  // Handler for settings changes to save them
+  const handleTicketSetChange = (value: string) => {
+    setSelectedTicketSet(value);
+    saveGameSettings({
+      numberCallingDelay,
+      selectedTicketSet: value,
+      selectedPrizes,
+      maxTickets
+    });
+  };
+
+  const handleMaxTicketsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value === '' ? 0 : Number(e.target.value);
+    setMaxTickets(value);
+    saveGameSettings({
+      numberCallingDelay,
+      selectedTicketSet,
+      selectedPrizes,
+      maxTickets: value
+    });
+  };
+
+  const handleDelayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value === '' ? 0 : Number(e.target.value);
+    setNumberCallingDelay(value);
+    saveGameSettings({
+      numberCallingDelay: value,
+      selectedTicketSet,
+      selectedPrizes,
+      maxTickets
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -590,7 +670,7 @@ const HostDashboard: React.FC = () => {
 
                   <div>
                     <Label htmlFor="ticketSet">Ticket Set</Label>
-                    <Select value={selectedTicketSet} onValueChange={setSelectedTicketSet}>
+                    <Select value={selectedTicketSet} onValueChange={handleTicketSetChange}>
                       <SelectTrigger className="mt-1">
                         <SelectValue placeholder="Select ticket set" />
                       </SelectTrigger>
@@ -610,7 +690,7 @@ const HostDashboard: React.FC = () => {
                       min="0"
                       max="1000"
                       value={maxTickets || ''}
-                      onChange={(e) => setMaxTickets(e.target.value === '' ? 0 : Number(e.target.value))}
+                      onChange={handleMaxTicketsChange}
                       className="mt-1"
                       placeholder="Enter number of tickets"
                     />
@@ -642,7 +722,7 @@ const HostDashboard: React.FC = () => {
                       min="0"
                       max="10"
                       value={numberCallingDelay || ''}
-                      onChange={(e) => setNumberCallingDelay(e.target.value === '' ? 0 : Number(e.target.value))}
+                      onChange={handleDelayChange}
                       className="mt-1"
                       placeholder="Enter delay in seconds"
                     />
