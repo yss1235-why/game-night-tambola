@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -154,11 +155,11 @@ const AdminPanel = () => {
     try {
       const { error } = await supabase
         .from('winners')
-        .insert([{
+        .insert({
           game_id: currentGame.id,
           ticket_id: ticket.id,
           prize_type: prizeType
-        }]);
+        });
 
       if (error) throw error;
 

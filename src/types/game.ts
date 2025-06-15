@@ -1,3 +1,4 @@
+
 export type GameStatus = 'waiting' | 'active' | 'paused' | 'ended';
 export type PrizeType = 'quick_five' | 'corners' | 'star_corners' | 'top_line' | 'middle_line' | 'bottom_line' | 'half_sheet' | 'full_sheet' | 'full_house' | 'second_full_house';
 
