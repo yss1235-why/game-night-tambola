@@ -10,7 +10,7 @@ import WinnersList from '@/components/WinnersList';
 import PlayerTicketView from '@/components/PlayerTicketView';
 import WinnerAnnouncement from '@/components/WinnerAnnouncement';
 import { supabase } from '@/integrations/supabase/client';
-import { Winner } from '@/types/game';
+import { Winner, Game } from '@/types/game';
 
 const PlayerView: React.FC = () => {
   const { currentGame, tickets, bookings, winners, lastGameWinners, isLoading } = useGameData();
@@ -18,6 +18,35 @@ const PlayerView: React.FC = () => {
   const [viewedTickets, setViewedTickets] = useState<number[]>([]);
   const [newWinners, setNewWinners] = useState<Winner[]>([]);
   const [dismissedWinners, setDismissedWinners] = useState<Set<string>>(new Set());
+  const [realtimeGame, setRealtimeGame] = useState<Game | null>(currentGame);
+
+  // Update realtime game when currentGame changes
+  useEffect(() => {
+    setRealtimeGame(currentGame);
+  }, [currentGame]);
+
+  // Real-time game updates for numbers and status
+  useEffect(() => {
+    if (!currentGame) return;
+
+    const gameChannel = supabase
+      .channel(`game-updates-${currentGame.id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'games',
+        filter: `id=eq.${currentGame.id}`
+      }, (payload) => {
+        const updatedGame = payload.new as Game;
+        console.log('Real-time game update:', updatedGame);
+        setRealtimeGame(updatedGame);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(gameChannel);
+    };
+  }, [currentGame]);
 
   // Real-time winner detection
   useEffect(() => {
@@ -93,8 +122,11 @@ const PlayerView: React.FC = () => {
     );
   }
 
+  // Use realtime game data if available, otherwise fallback to currentGame
+  const gameToDisplay = realtimeGame || currentGame;
+
   // Show last game winners if no active game
-  if (!currentGame || currentGame.status === 'ended') {
+  if (!gameToDisplay || gameToDisplay.status === 'ended') {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
         <div className="max-w-6xl mx-auto">
@@ -126,7 +158,7 @@ const PlayerView: React.FC = () => {
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="mb-6">
-          <GameStatus game={currentGame} winners={winners} />
+          <GameStatus game={gameToDisplay} winners={winners} />
         </div>
 
         {/* Ticket Search */}
@@ -188,8 +220,8 @@ const PlayerView: React.FC = () => {
             viewedTickets={viewedTickets}
             tickets={tickets}
             bookings={bookings}
-            calledNumbers={currentGame?.numbers_called || []}
-            currentNumber={currentGame?.current_number}
+            calledNumbers={gameToDisplay?.numbers_called || []}
+            currentNumber={gameToDisplay?.current_number}
             onRemoveTicket={removeTicketFromView}
           />
         )}
@@ -200,8 +232,8 @@ const PlayerView: React.FC = () => {
             winners={winners}
             tickets={tickets}
             bookings={bookings}
-            calledNumbers={currentGame?.numbers_called || []}
-            currentNumber={currentGame?.current_number}
+            calledNumbers={gameToDisplay?.numbers_called || []}
+            currentNumber={gameToDisplay?.current_number}
           />
         )}
 
