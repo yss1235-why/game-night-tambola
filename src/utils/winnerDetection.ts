@@ -134,8 +134,11 @@ export const detectWinners = (
 ): WinnerDetectionResult[] => {
   const winners: WinnerDetectionResult[] = [];
   
-  // Convert selectedPrizes strings to PrizeType for type safety
-  const selectedPrizeTypes = selectedPrizes as PrizeType[];
+  // Convert selectedPrizes strings to PrizeType for type safety, filtering out invalid ones
+  const validPrizeTypes: PrizeType[] = ['quick_five', 'corners', 'star_corners', 'top_line', 'middle_line', 'bottom_line', 'half_sheet', 'full_sheet', 'full_house', 'second_full_house'];
+  const selectedPrizeTypes = selectedPrizes.filter((prize): prize is PrizeType => 
+    validPrizeTypes.includes(prize as PrizeType)
+  );
   
   // Create a map of ticket ID to booking for quick lookup
   const ticketToBooking = new Map<number, Booking>();
@@ -166,7 +169,7 @@ export const detectWinners = (
   };
 
   // Regular prize types (not sheets) - only check selected prizes
-  const regularPrizeTypes: { prizeType: PrizeType; checkFn: (ticket: Ticket, calledNumbers: number[]) => boolean }[] = [
+  const allRegularPrizeTypes: { prizeType: PrizeType; checkFn: (ticket: Ticket, calledNumbers: number[]) => boolean }[] = [
     { prizeType: 'quick_five', checkFn: checkQuickFive },
     { prizeType: 'corners', checkFn: checkCorners },
     { prizeType: 'star_corners', checkFn: checkStarCorners },
@@ -174,7 +177,12 @@ export const detectWinners = (
     { prizeType: 'middle_line', checkFn: checkMiddleLine },
     { prizeType: 'bottom_line', checkFn: checkBottomLine },
     { prizeType: 'full_house', checkFn: checkFullHouse },
-  ].filter(({ prizeType }) => selectedPrizeTypes.includes(prizeType)); // Filter by selected prizes
+  ];
+  
+  // Filter by selected prizes with proper typing
+  const regularPrizeTypes = allRegularPrizeTypes.filter(({ prizeType }) => 
+    selectedPrizeTypes.includes(prizeType)
+  );
 
   // Check regular prize types
   regularPrizeTypes.forEach(({ prizeType, checkFn }) => {
