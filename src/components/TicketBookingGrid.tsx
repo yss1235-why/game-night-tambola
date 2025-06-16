@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Ticket, Booking, Game } from '@/types/game';
-import { generateHousieTicket } from '@/utils/ticketGenerator';
+import { loadTicketFromSet } from '@/utils/ticketSetLoader';
 import { X, Edit } from 'lucide-react';
 
 interface TicketBookingGridProps {
@@ -205,8 +204,12 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
             throw new Error(`Ticket ${ticketNumber} is already booked`);
           }
           
-          // Generate the ticket data using our new generator
-          const ticketData = generateHousieTicket(ticketNumber);
+          // Load the ticket data from selected ticket set
+          const ticketData = await loadTicketFromSet(
+            currentGame.ticket_set || 'set-1',
+            ticketNumber,
+            currentGame.max_tickets || 100
+          );
           
           // Create the ticket in the database
           const { data: newTicket, error: ticketError } = await supabase
