@@ -592,7 +592,7 @@ const HostDashboard: React.FC = () => {
           newCalledNumbers,
           winners,
           latestGame.max_tickets || 100,
-          selectedPrizesArray as any[] // Cast to PrizeType[]
+          selectedPrizesArray // Now correctly typed as string[]
         );
 
         // Add new winners to database
@@ -669,7 +669,7 @@ const HostDashboard: React.FC = () => {
         calledNumbers,
         existingWinners || [],
         maxTickets,
-        selectedPrizesArray as any[] // Cast to PrizeType[]
+        selectedPrizesArray // Now correctly typed as string[]
       );
 
       console.log('New winners detected:', newWinners);

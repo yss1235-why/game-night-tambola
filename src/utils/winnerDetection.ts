@@ -130,9 +130,12 @@ export const detectWinners = (
   calledNumbers: number[],
   existingWinners: { prize_type: string; ticket_id: number }[],
   maxTickets: number,
-  selectedPrizes: PrizeType[] = [] // New parameter for selected prizes
+  selectedPrizes: string[] = [] // Changed to string[] to match database type
 ): WinnerDetectionResult[] => {
   const winners: WinnerDetectionResult[] = [];
+  
+  // Convert selectedPrizes strings to PrizeType for type safety
+  const selectedPrizeTypes = selectedPrizes as PrizeType[];
   
   // Create a map of ticket ID to booking for quick lookup
   const ticketToBooking = new Map<number, Booking>();
@@ -171,7 +174,7 @@ export const detectWinners = (
     { prizeType: 'middle_line', checkFn: checkMiddleLine },
     { prizeType: 'bottom_line', checkFn: checkBottomLine },
     { prizeType: 'full_house', checkFn: checkFullHouse },
-  ].filter(({ prizeType }) => selectedPrizes.includes(prizeType)); // Filter by selected prizes
+  ].filter(({ prizeType }) => selectedPrizeTypes.includes(prizeType)); // Filter by selected prizes
 
   // Check regular prize types
   regularPrizeTypes.forEach(({ prizeType, checkFn }) => {
@@ -235,7 +238,7 @@ export const detectWinners = (
   });
 
   // Check sheet patterns (Half Sheet and Full Sheet) - only if selected
-  if (selectedPrizes.includes('half_sheet') && !existingWinnersByPrize.has('half_sheet')) {
+  if (selectedPrizeTypes.includes('half_sheet') && !existingWinnersByPrize.has('half_sheet')) {
     const halfSheetWinner = getWinningHalfSheet(bookings, tickets, calledNumbers, maxTickets);
     if (halfSheetWinner) {
       const firstTicket = tickets.find(t => t.ticket_number === halfSheetWinner.tickets[0]);
@@ -252,7 +255,7 @@ export const detectWinners = (
     }
   }
 
-  if (selectedPrizes.includes('full_sheet') && !existingWinnersByPrize.has('full_sheet')) {
+  if (selectedPrizeTypes.includes('full_sheet') && !existingWinnersByPrize.has('full_sheet')) {
     const fullSheetWinner = getWinningFullSheet(bookings, tickets, calledNumbers, maxTickets);
     if (fullSheetWinner) {
       const firstTicket = tickets.find(t => t.ticket_number === fullSheetWinner.tickets[0]);
@@ -273,7 +276,7 @@ export const detectWinners = (
   const fullHouseWinners = existingWinnersByPrize.get('full_house') || [];
   const existingSecondFullHouseWinners = existingWinnersByPrize.get('second_full_house') || [];
   
-  if (selectedPrizes.includes('second_full_house') && fullHouseWinners.length > 0 && existingSecondFullHouseWinners.length === 0) {
+  if (selectedPrizeTypes.includes('second_full_house') && fullHouseWinners.length > 0 && existingSecondFullHouseWinners.length === 0) {
     // Find potential second full house winners (exclude existing full house winners)
     const potentialSecondFullHouseByNumber = new Map<number, WinnerDetectionResult[]>();
     
