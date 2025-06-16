@@ -423,6 +423,8 @@ const AdminPanel = () => {
                         winners={winners}
                         tickets={tickets}
                         bookings={bookings}
+                        calledNumbers={currentGame?.numbers_called || []}
+                        currentNumber={currentGame?.current_number}
                       />
                     ) : (
                       <Card className="p-4">

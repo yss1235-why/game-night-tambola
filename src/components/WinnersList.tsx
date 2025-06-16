@@ -8,7 +8,7 @@ interface WinnersListProps {
   winners: Winner[];
   tickets: Ticket[];
   bookings: Booking[];
-  calledNumbers: number[];
+  calledNumbers?: number[];
   currentNumber?: number | null;
 }
 
@@ -16,7 +16,7 @@ const WinnersList: React.FC<WinnersListProps> = ({
   winners,
   tickets,
   bookings,
-  calledNumbers,
+  calledNumbers = [],
   currentNumber
 }) => {
   if (winners.length === 0) return null;
@@ -65,7 +65,7 @@ const WinnersList: React.FC<WinnersListProps> = ({
                   )}
                 </div>
                 <div className="text-sm text-gray-500">
-                  Won at {new Date(winner.created_at).toLocaleTimeString()}
+                  Won at {new Date(winner.claimed_at || '').toLocaleTimeString()}
                 </div>
               </div>
               
