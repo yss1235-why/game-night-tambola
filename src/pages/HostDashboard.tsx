@@ -584,13 +584,15 @@ const HostDashboard: React.FC = () => {
         // Play audio for the called number
         playNumberAudio(nextNumber);
 
-        // Check for new winners after calling the number
+        // Check for new winners after calling the number - pass selected prizes
+        const selectedPrizesArray = (latestGame.selected_prizes as string[]) || [];
         const newWinners = detectWinners(
           tickets,
           bookings,
           newCalledNumbers,
           winners,
-          latestGame.max_tickets || 100
+          latestGame.max_tickets || 100,
+          selectedPrizesArray as any[] // Cast to PrizeType[]
         );
 
         // Add new winners to database
@@ -651,13 +653,23 @@ const HostDashboard: React.FC = () => {
 
       console.log('Existing winners:', existingWinners);
 
-      // Detect new winners
+      // Get current game's selected prizes
+      const { data: gameData } = await supabase
+        .from('games')
+        .select('selected_prizes')
+        .eq('id', gameId)
+        .single();
+
+      const selectedPrizesArray = (gameData?.selected_prizes as string[]) || [];
+
+      // Detect new winners with selected prizes filter
       const newWinners = detectWinners(
         currentTickets,
         currentBookings,
         calledNumbers,
         existingWinners || [],
-        maxTickets
+        maxTickets,
+        selectedPrizesArray as any[] // Cast to PrizeType[]
       );
 
       console.log('New winners detected:', newWinners);

@@ -129,7 +129,8 @@ export const detectWinners = (
   bookings: Booking[],
   calledNumbers: number[],
   existingWinners: { prize_type: string; ticket_id: number }[],
-  maxTickets: number
+  maxTickets: number,
+  selectedPrizes: PrizeType[] = [] // New parameter for selected prizes
 ): WinnerDetectionResult[] => {
   const winners: WinnerDetectionResult[] = [];
   
@@ -161,7 +162,7 @@ export const detectWinners = (
     return existingWinnerKeys.has(key);
   };
 
-  // Regular prize types (not sheets)
+  // Regular prize types (not sheets) - only check selected prizes
   const regularPrizeTypes: { prizeType: PrizeType; checkFn: (ticket: Ticket, calledNumbers: number[]) => boolean }[] = [
     { prizeType: 'quick_five', checkFn: checkQuickFive },
     { prizeType: 'corners', checkFn: checkCorners },
@@ -170,7 +171,7 @@ export const detectWinners = (
     { prizeType: 'middle_line', checkFn: checkMiddleLine },
     { prizeType: 'bottom_line', checkFn: checkBottomLine },
     { prizeType: 'full_house', checkFn: checkFullHouse },
-  ];
+  ].filter(({ prizeType }) => selectedPrizes.includes(prizeType)); // Filter by selected prizes
 
   // Check regular prize types
   regularPrizeTypes.forEach(({ prizeType, checkFn }) => {
@@ -233,8 +234,8 @@ export const detectWinners = (
     }
   });
 
-  // Check sheet patterns (Half Sheet and Full Sheet) - these remain single winners
-  if (!existingWinnersByPrize.has('half_sheet')) {
+  // Check sheet patterns (Half Sheet and Full Sheet) - only if selected
+  if (selectedPrizes.includes('half_sheet') && !existingWinnersByPrize.has('half_sheet')) {
     const halfSheetWinner = getWinningHalfSheet(bookings, tickets, calledNumbers, maxTickets);
     if (halfSheetWinner) {
       const firstTicket = tickets.find(t => t.ticket_number === halfSheetWinner.tickets[0]);
@@ -251,7 +252,7 @@ export const detectWinners = (
     }
   }
 
-  if (!existingWinnersByPrize.has('full_sheet')) {
+  if (selectedPrizes.includes('full_sheet') && !existingWinnersByPrize.has('full_sheet')) {
     const fullSheetWinner = getWinningFullSheet(bookings, tickets, calledNumbers, maxTickets);
     if (fullSheetWinner) {
       const firstTicket = tickets.find(t => t.ticket_number === fullSheetWinner.tickets[0]);
@@ -268,11 +269,11 @@ export const detectWinners = (
     }
   }
 
-  // Handle second full house - check if there are already full house winners
+  // Handle second full house - check if there are already full house winners and if it's selected
   const fullHouseWinners = existingWinnersByPrize.get('full_house') || [];
   const existingSecondFullHouseWinners = existingWinnersByPrize.get('second_full_house') || [];
   
-  if (fullHouseWinners.length > 0 && existingSecondFullHouseWinners.length === 0) {
+  if (selectedPrizes.includes('second_full_house') && fullHouseWinners.length > 0 && existingSecondFullHouseWinners.length === 0) {
     // Find potential second full house winners (exclude existing full house winners)
     const potentialSecondFullHouseByNumber = new Map<number, WinnerDetectionResult[]>();
     
