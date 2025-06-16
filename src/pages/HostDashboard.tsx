@@ -22,13 +22,13 @@ const HostDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [numberCallingDelay, setNumberCallingDelay] = useState('');
   const [hostPhone, setHostPhone] = useState('');
-  const [selectedTicketSet, setSelectedTicketSet] = useState('demo-set-1');
+  const [selectedTicketSet, setSelectedTicketSet] = useState('set-1');
   const [selectedPrizes, setSelectedPrizes] = useState<PrizeType[]>(['top_line', 'full_house']);
   const [maxTickets, setMaxTickets] = useState('');
   const [isNumberCalling, setIsNumberCalling] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editDelay, setEditDelay] = useState('');
-  const [editTicketSet, setEditTicketSet] = useState('demo-set-1');
+  const [editTicketSet, setEditTicketSet] = useState('set-1');
   const [editPrizes, setEditPrizes] = useState<PrizeType[]>(['top_line', 'full_house']);
   const [editHostPhone, setEditHostPhone] = useState('');
   const [editMaxTickets, setEditMaxTickets] = useState('');
@@ -43,7 +43,7 @@ const HostDashboard: React.FC = () => {
       if (savedSettings) {
         const settings = JSON.parse(savedSettings);
         setNumberCallingDelay(settings.numberCallingDelay?.toString() || '5');
-        setSelectedTicketSet(settings.selectedTicketSet || 'demo-set-1');
+        setSelectedTicketSet(settings.selectedTicketSet || 'set-1');
         setSelectedPrizes(settings.selectedPrizes || ['top_line', 'full_house']);
         setMaxTickets(settings.maxTickets?.toString() || '100');
         console.log('Loaded saved game settings:', settings);
@@ -188,7 +188,7 @@ const HostDashboard: React.FC = () => {
   useEffect(() => {
     if (currentGame) {
       setEditDelay((currentGame.number_calling_delay || 5).toString());
-      setEditTicketSet(currentGame.ticket_set || 'demo-set-1');
+      setEditTicketSet(currentGame.ticket_set || 'set-1');
       setEditPrizes((currentGame.selected_prizes as PrizeType[]) || ['top_line', 'full_house']);
       // Use host phone from current host data if available, otherwise use game phone
       setEditHostPhone(currentGame.host_phone || currentHostData?.phone || '');
@@ -846,9 +846,8 @@ const HostDashboard: React.FC = () => {
                         <SelectValue placeholder="Select ticket set" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="demo-set-1">Demo Set 1</SelectItem>
-                        <SelectItem value="demo-set-2">Demo Set 2</SelectItem>
-                        <SelectItem value="demo-set-3">Demo Set 3</SelectItem>
+                        <SelectItem value="set-1">Ticket Set 1</SelectItem>
+                        <SelectItem value="set-2">Ticket Set 2</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1038,9 +1037,8 @@ const HostDashboard: React.FC = () => {
                     <SelectValue placeholder="Select ticket set" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="demo-set-1">Demo Set 1</SelectItem>
-                    <SelectItem value="demo-set-2">Demo Set 2</SelectItem>
-                    <SelectItem value="demo-set-3">Demo Set 3</SelectItem>
+                    <SelectItem value="set-1">Ticket Set 1</SelectItem>
+                    <SelectItem value="set-2">Ticket Set 2</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
