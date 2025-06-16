@@ -1,8 +1,8 @@
+// src/hooks/useGameData.ts
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Game, Ticket, Booking, Winner } from '@/types/game';
-import { createDemoTickets } from '@/utils/demoTickets';
 
 export const useGameData = () => {
   const [currentGame, setCurrentGame] = useState<Game | null>(null);
@@ -13,7 +13,7 @@ export const useGameData = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    initializeData();
+    fetchInitialData();
     
     // Setup realtime subscriptions
     const gamesChannel = supabase
@@ -151,14 +151,6 @@ export const useGameData = () => {
     }
   };
 
-  const initializeData = async () => {
-    // Create demo tickets first
-    await createDemoTickets();
-    
-    // Then fetch all data
-    await fetchInitialData();
-  };
-
   const fetchInitialData = async () => {
     try {
       // Get current active game or latest game
@@ -193,12 +185,13 @@ export const useGameData = () => {
         setWinners(gameWinners || []);
       }
 
-      // Fetch all tickets
+      // Fetch all tickets from database
       const { data: allTickets } = await supabase
         .from('tickets')
         .select('*')
         .order('ticket_number');
       setTickets(allTickets || []);
+      console.log('Loaded tickets from database:', (allTickets || []).length);
 
     } catch (error) {
       console.error('Error fetching initial data:', error);
