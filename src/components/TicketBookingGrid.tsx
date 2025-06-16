@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Ticket, Booking, Game } from '@/types/game';
-import { loadTicketFromSet } from '@/utils/ticketSetLoader';
+import { loadTicketFromSet } from '@/utils/ticketLoader';
 import { X, Edit } from 'lucide-react';
 
 interface TicketBookingGridProps {
@@ -204,7 +204,7 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
             throw new Error(`Ticket ${ticketNumber} is already booked`);
           }
           
-          // Load the ticket data from selected ticket set
+          // Load the ticket data from selected ticket set (public/tickets)
           const ticketData = await loadTicketFromSet(
             currentGame.ticket_set || 'set-1',
             ticketNumber,
@@ -267,6 +267,7 @@ const TicketBookingGrid: React.FC<TicketBookingGridProps> = ({
 
     } catch (error) {
       console.error('Error booking tickets:', error);
+      alert(`Booking failed: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
