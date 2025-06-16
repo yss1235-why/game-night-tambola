@@ -1,30 +1,88 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGameData } from '@/hooks/useGameData';
 import GameStatus from '@/components/GameStatus';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import NumberGrid from '@/components/NumberGrid';
 import WinnersList from '@/components/WinnersList';
 import PlayerTicketView from '@/components/PlayerTicketView';
+import WinnerAnnouncement from '@/components/WinnerAnnouncement';
+import { supabase } from '@/integrations/supabase/client';
+import { Winner } from '@/types/game';
 
 const PlayerView: React.FC = () => {
   const { currentGame, tickets, bookings, winners, lastGameWinners, isLoading } = useGameData();
   const [searchTicketNumber, setSearchTicketNumber] = useState('');
   const [viewedTickets, setViewedTickets] = useState<number[]>([]);
+  const [newWinners, setNewWinners] = useState<Winner[]>([]);
+  const [dismissedWinners, setDismissedWinners] = useState<Set<string>>(new Set());
+
+  // Real-time winner detection
+  useEffect(() => {
+    if (!currentGame || currentGame.status !== 'active') return;
+
+    const channel = supabase
+      .channel('winners-realtime')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'winners',
+        filter: `game_id=eq.${currentGame.id}`
+      }, (payload) => {
+        const newWinner = payload.new as Winner;
+        if (!dismissedWinners.has(newWinner.id)) {
+          setNewWinners(prev => [...prev, newWinner]);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentGame, dismissedWinners]);
 
   const handleSearchTicket = () => {
     const ticketNumber = parseInt(searchTicketNumber);
-    if (ticketNumber && !viewedTickets.includes(ticketNumber)) {
-      setViewedTickets(prev => [...prev, ticketNumber]);
+    if (!ticketNumber) return;
+
+    // Find the player who booked this ticket
+    const booking = bookings.find(b => {
+      const ticket = tickets.find(t => t.id === b.ticket_id);
+      return ticket?.ticket_number === ticketNumber;
+    });
+
+    if (booking) {
+      // Find all tickets booked by this player
+      const playerBookings = bookings.filter(b => b.player_name === booking.player_name);
+      const playerTicketNumbers = playerBookings.map(b => {
+        const ticket = tickets.find(t => t.id === b.ticket_id);
+        return ticket?.ticket_number;
+      }).filter(Boolean) as number[];
+
+      // Add all player's tickets to viewed tickets (avoid duplicates)
+      setViewedTickets(prev => {
+        const newTickets = playerTicketNumbers.filter(num => !prev.includes(num));
+        return [...prev, ...newTickets];
+      });
+    } else {
+      // If ticket not found or not booked, just add the searched ticket
+      if (!viewedTickets.includes(ticketNumber)) {
+        setViewedTickets(prev => [...prev, ticketNumber]);
+      }
     }
+    
     setSearchTicketNumber('');
   };
 
   const removeTicketFromView = (ticketNumber: number) => {
     setViewedTickets(prev => prev.filter(num => num !== ticketNumber));
+  };
+
+  const handleDismissWinner = (winnerId: string) => {
+    setDismissedWinners(prev => new Set([...prev, winnerId]));
+    setNewWinners(prev => prev.filter(w => w.id !== winnerId));
   };
 
   if (isLoading) {
@@ -71,20 +129,12 @@ const PlayerView: React.FC = () => {
           <GameStatus game={currentGame} winners={winners} />
         </div>
 
-        {/* Single Number Grid - only show during active or paused game */}
-        {(currentGame.status === 'active' || currentGame.status === 'paused') && (
-          <NumberGrid 
-            calledNumbers={currentGame?.numbers_called || []}
-            currentNumber={currentGame?.current_number}
-          />
-        )}
-
         {/* Ticket Search */}
         <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Search Your</h2>
+          <h2 className="text-xl font-semibold mb-4">Search Your Tickets</h2>
           <div className="flex gap-4 items-end">
             <div className="flex-1">
-              <Label htmlFor="ticketSearch">Enter Number</Label>
+              <Label htmlFor="ticketSearch">Enter Ticket Number</Label>
               <Input
                 id="ticketSearch"
                 type="number"
@@ -96,27 +146,37 @@ const PlayerView: React.FC = () => {
               />
             </div>
             <Button onClick={handleSearchTicket} disabled={!searchTicketNumber}>
-              Search
+              Search Player's Tickets
             </Button>
           </div>
           
           {viewedTickets.length > 0 && (
             <div className="mt-4">
-              <h3 className="text-lg font-medium mb-2">Searched:</h3>
+              <h3 className="text-lg font-medium mb-2">Viewing Tickets:</h3>
               <div className="flex flex-wrap gap-2">
-                {viewedTickets.map(ticketNumber => (
-                  <div key={ticketNumber} className="flex items-center gap-2 bg-blue-100 px-3 py-1 rounded">
-                    <span>#{ticketNumber}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeTicketFromView(ticketNumber)}
-                      className="h-auto p-1 text-red-500 hover:text-red-700"
-                    >
-                      ×
-                    </Button>
-                  </div>
-                ))}
+                {viewedTickets.map(ticketNumber => {
+                  const booking = bookings.find(b => {
+                    const ticket = tickets.find(t => t.id === b.ticket_id);
+                    return ticket?.ticket_number === ticketNumber;
+                  });
+                  
+                  return (
+                    <div key={ticketNumber} className="flex items-center gap-2 bg-blue-100 px-3 py-1 rounded">
+                      <span>#{ticketNumber}</span>
+                      {booking && (
+                        <span className="text-xs text-blue-600">({booking.player_name})</span>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeTicketFromView(ticketNumber)}
+                        className="h-auto p-1 text-red-500 hover:text-red-700"
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -144,6 +204,12 @@ const PlayerView: React.FC = () => {
             currentNumber={currentGame?.current_number}
           />
         )}
+
+        {/* Real-time Winner Announcements */}
+        <WinnerAnnouncement 
+          newWinners={newWinners} 
+          onDismiss={handleDismissWinner} 
+        />
       </div>
     </div>
   );
